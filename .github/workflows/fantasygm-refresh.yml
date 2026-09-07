@@ -1,0 +1,34 @@
+name: FantasyGM cloud refresh
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '17 13 * * *'
+permissions:
+  contents: read
+concurrency:
+  group: fantasygm-refresh
+  cancel-in-progress: false
+jobs:
+  refresh:
+    if: github.event_name == 'workflow_dispatch' || vars.CLOUD_REFRESH_ENABLED == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      FANTRAX_USER_SECRET_ID: ${{ secrets.FANTRAX_USER_SECRET_ID }}
+      AIRTABLE_TOKEN: ${{ secrets.AIRTABLE_TOKEN }}
+      AIRTABLE_BASE_ID: appA7fcI1VWfwOUXq
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Verify data handling
+        run: python -m unittest -v test_cloud_sync.py
+      - name: Validate configuration
+        run: python cloud_sync.py --check-config
+      - name: Collect Fantrax once
+        run: python fantrax_refresh.py --root "$RUNNER_TEMP/fantasygm" --league-id gxq8uqpqmg5m5edj --no-prompt
+      - name: Refresh shared Airtable data
+        run: python cloud_sync.py --root "$RUNNER_TEMP/fantasygm"
