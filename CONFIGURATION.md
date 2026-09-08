@@ -1,23 +1,18 @@
-# FantasyGM cloud refresh — prepared, not installed
+# FantasyGM daily refresh and website publication
 
-Target repository: https://github.com/Longball-debug/Team
-Base: https://airtable.com/appA7fcI1VWfwOUXq
+The existing Fantrax collector runs daily at 06:17 America/Phoenix and on manual workflow dispatch. Changes to the refresh workflow or publication builder also trigger a run. No enablement variable is required.
 
-This package adds the existing Fantrax collector and an Airtable publisher. It does not replace index.html. The workflow runs once daily at 06:17 America/Phoenix, and supports manual runs. It retrieves Fantrax once and upserts shared operational data. Raw responses remain in the temporary runner directory and are not uploaded or committed.
+Repository secrets remain FANTRAX_USER_SECRET_ID and AIRTABLE_TOKEN. The token is used only in GitHub Actions and is never copied into browser code or the snapshot. The collector and Airtable backend safeguards are unchanged.
 
-## Activation still required
+After Airtable sync succeeds, public_snapshot.py reads back all current teams and players, verifies stable IDs, memberships and the exact collection timestamp, and allowlists public fields. It requires all 12 standings teams, nonempty rosters, and a collection no older than two hours. Names omitted by Fantrax are preserved only by league and stable player ID. Missing metrics remain unavailable; old Airtable metrics do not fill missing source values.
 
-1. Save these files in the Team repository, retaining the .github/workflows directory.
-2. In repository Settings → Secrets and variables → Actions, configure FANTRAX_USER_SECRET_ID and AIRTABLE_TOKEN. Enter credentials only in secure settings, not chat or source files. AIRTABLE_TOKEN needs data.records:read and data.records:write, restricted to the selected base. Schema permissions are unnecessary for this publisher.
-3. Run FantasyGM cloud refresh manually and verify the resulting Teams and Players records before relying on scheduled refreshes.
-4. Configure server-side readers on the existing Sites with a separate read-only Airtable credential. Both Sites currently have no environment variables. Their existing source and access controls must be inspected before modifying and publishing them.
+Only public/fantasygm.json is committed as one atomic publication. Raw responses stay in the runner temporary directory. A failed collection, partial sync, failed readback or failed push leaves the last publication intact. Concurrent branch changes cause the push to fail safely; rerun rather than force-pushing.
 
-## Data coverage and limits
+The repository index.html and existing Desert Rats Sites server reader consume this sanitized publication. The Sites source is a separate repository managed by Sites; updating the legacy GitHub HTML alone does not deploy that application. The deployed reader retrieves this fixed public URL without Airtable credentials:
+https://raw.githubusercontent.com/Longball-debug/Team/main/public/fantasygm.json
 
-Validated against the saved September 4 export: 12 teams and 321 roster players. Fantrax's points field contains the win-loss-tie record; totalPointsFor supplies numeric fantasy points. Player names are absent in the observed roster payload. Existing manually supplied Airtable names are preserved. FAAB is not inferred from salary cap.
+Both readers reject empty, invalid, future-dated or more-than-30-hour-old data. Last Updated comes from the collection timestamp, not page load. The public publication contains only league-facing IDs, names, roster positions/status, standings record and points; no private Airtable fields or credentials.
 
-Only Teams and Players are populated by this initial publisher. Daily matchups, SP ratings, injuries, free-agent metrics, and league matchup scores require verified sources and mappings; those tables remain empty. This is not a completed migration of those features.
+Tests: python -m unittest discover -v; node --test test_snapshot_contract.mjs; node test_website_e2e.mjs (Playwright required). Set SITE_URL to test the Sites UI with fixtures. Set VERIFY_LATEST=1 as well to compare its API and rendered rows against the latest publication. Owner-private verification accepts SITE_BYPASS through the environment; never save that value in source or logs.
 
-Updates are batched and keyed by league and entity ID. Players absent from a complete fresh roster lose their team membership without deleting their identity or manual fields. Newer Airtable data blocks stale writes. Failed multi-batch writes can leave a partial refresh; rerunning repairs it. Website readers must not assume atomic snapshots. Do not cut over the sites until freshness and partial-refresh handling are implemented and tested.
-
-The local Windows refresh has not been disabled. The workflow is not active until installed in GitHub, and website connections have not been changed.
+No matchup, injury, ranking, free-agent, newsletter or history-site features are added by this repair.
