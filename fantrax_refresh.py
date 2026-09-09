@@ -278,7 +278,7 @@ def summarize_standings(payload: Any) -> list[dict]:
         })
     return out
 
-def summarize_roster(payload: Any, wanted_team_name: str, league_info: Any = None) -> dict[str, Any]:
+def summarize_roster(payload: Any, wanted_team_name: str, league_info: Any = None, player_ids: Any = None) -> dict[str, Any]:
     """
     Fantrax v1.2 live schema observed for LONGBALL 2026:
       {
@@ -336,7 +336,7 @@ def summarize_roster(payload: Any, wanted_team_name: str, league_info: Any = Non
 
         players.append({
             "player_id": pid,
-            "name": first_value(item, ("playerName", "name", "fullName", "displayName")),
+            "name": resolve_player_name(pid, player_ids) if player_ids is not None else first_value(item, PLAYER_NAME_KEYS),
             "slot": item.get("position"),
             "roster_status": item.get("status"),
             "eligible_positions": info.get("eligiblePos"),
@@ -356,11 +356,23 @@ def summarize_roster(payload: Any, wanted_team_name: str, league_info: Any = Non
         "note": (
             "The observed Fantrax getTeamRosters response identifies players by ID, "
             "position and roster status but does not include player names. "
-            "Names are left null rather than guessed."
+            "Player names are resolved by exact ID through getPlayerIds when supplied."
         ),
     }
 
-def summarize_all_rosters(payload: Any, league_info: Any = None) -> list[dict[str, Any]]:
+def resolve_player_name(pid: str, catalogue: Any) -> str:
+    """Join Fantrax's catalogue by exact ID; never infer identity from position."""
+    entry = catalogue.get(pid) if isinstance(catalogue, dict) else None
+    if not isinstance(entry, dict) or entry.get('fantraxId') != pid:
+        raise ValueError(f'Fantrax player catalogue identity missing or mismatched: {pid}')
+    name = entry.get('name')
+    if not isinstance(name, str) or not name.strip():
+        raise ValueError(f'Fantrax player catalogue name missing: {pid}')
+    parts = name.strip().split(', ', 1)
+    return ' '.join(reversed(parts)) if len(parts) == 2 else parts[0]
+
+
+def summarize_all_rosters(payload: Any, league_info: Any = None, player_ids: Any = None) -> list[dict[str, Any]]:
     rosters = payload.get("rosters", {}) if isinstance(payload, dict) else {}
     if not isinstance(rosters, dict):
         return []
@@ -372,7 +384,7 @@ def summarize_all_rosters(payload: Any, league_info: Any = None) -> list[dict[st
         name = team.get("teamName")
         if not name:
             continue
-        summary = summarize_roster(payload, name, league_info)
+        summary = summarize_roster(payload, name, league_info, player_ids)
         out.append({
             "team_id": tid,
             "team_name": name,
@@ -455,6 +467,7 @@ def main() -> int:
         print(f"   Selected: {lname} [{lid}]")
 
         calls = [
+            ("getPlayerIds", {"sport": "MLB"}),
             ("getLeagueInfo", {"leagueId": lid}),
             ("getTeamRosters", {"leagueId": lid, "period": args.period}),
             ("getStandings", {"leagueId": lid}),
@@ -473,7 +486,7 @@ def main() -> int:
             except Exception as exc:
                 status["endpoints"][endpoint] = f"FAILED: {exc}"
                 print(f"   FAILED: {exc}")
-                if endpoint in ("getLeagueInfo", "getTeamRosters", "getStandings"):
+                if endpoint in ("getPlayerIds", "getLeagueInfo", "getTeamRosters", "getStandings"):
                     raise
 
         league_info = endpoints.get("getLeagueInfo", {})
@@ -485,8 +498,8 @@ def main() -> int:
             "generated_at": now_iso(),
             "source": "Fantrax REST API",
             "league": {"name": lname, "league_id": lid},
-            "desert_rats": summarize_roster(rosters, args.team_name, league_info),
-            "all_rosters": summarize_all_rosters(rosters, league_info),
+            "desert_rats": summarize_roster(rosters, args.team_name, league_info, endpoints["getPlayerIds"]),
+            "all_rosters": summarize_all_rosters(rosters, league_info, endpoints["getPlayerIds"]),
             "standings": summarize_standings(standings),
             "league_info_sections": extract_named_sections(league_info),
             "teams_detected": [
