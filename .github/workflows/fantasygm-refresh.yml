@@ -7,7 +7,7 @@ on:
       - 'public_snapshot.py'
       - 'test_public_snapshot.py'
   schedule:
-    - cron: '17 13 * * *'
+        - cron: '45 12 * * *'
 permissions:
   contents: write
 concurrency:
