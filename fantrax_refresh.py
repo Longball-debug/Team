@@ -493,9 +493,21 @@ def main() -> int:
         rosters = endpoints.get("getTeamRosters", {})
         standings = endpoints.get("getStandings", {})
 
+        from shared_snapshot import build_pool, fetch_transactions
+        pool = build_pool(league_info, rosters, endpoints['getPlayerIds'])
+        try:
+            transactions = fetch_transactions(lid)
+            status['endpoints']['getTransactionDetailsHistory'] = 'OK'
+        except Exception:
+            # Preserve the working roster collector if this optional endpoint fails.
+            transactions = None
+            status['endpoints']['getTransactionDetailsHistory'] = 'UNAVAILABLE'
+
         normalized = {
             "schema_version": "1.0",
             "generated_at": now_iso(),
+            "pool": pool,
+            "transactions": transactions,
             "source": "Fantrax REST API",
             "league": {"name": lname, "league_id": lid},
             "desert_rats": summarize_roster(rosters, args.team_name, league_info, endpoints["getPlayerIds"]),

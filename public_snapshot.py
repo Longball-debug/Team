@@ -6,6 +6,7 @@ import re
 from datetime import datetime, timezone
 from pathlib import Path
 from cloud_sync import Airtable, build_records
+from shared_snapshot import validate_shared
 
 LEAGUE = 'gxq8uqpqmg5m5edj'
 
@@ -70,9 +71,20 @@ def build_snapshot(data, client, now=None):
         if isinstance(name, str) and name.strip():
             row['Player'] = name.strip()
         public_players.append(row)
+    pool, transactions = validate_shared(data, public_players, public_teams)
+    by_id = {p['fantraxId']: p for p in pool}
+    for player in public_players:
+        player['MLB Team'] = by_id[player['Player ID']]['mlbTeam']
+    unavailable = ['matchup_scores', 'starts_used', 'injury_details', 'pitcher_ratings']
+    if transactions is None:
+        unavailable.append('transactions')
     return dict(schema_version=1, league_id=LEAGUE, generated_at=data['generated_at'],
                 source='Fantrax REST API · Airtable verified names', teams=public_teams, players=public_players,
-                unavailable=['matchup_scores','starts_used','injury_details','free_agents','pitcher_ratings'])
+                pool=pool, transactions=transactions,
+                transaction_scope={'view': 'CLAIM_DROP', 'executed_only': True, 'max_results_per_page': 10,
+                                   'coverage': 'Recent page only; not full league history',
+                                   'date_format': 'Fantrax display text; preserved without timezone conversion'},
+                unavailable=unavailable)
 
 def main():
     parser = argparse.ArgumentParser()

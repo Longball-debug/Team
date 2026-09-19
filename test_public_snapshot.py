@@ -13,6 +13,10 @@ class PublicationTests(unittest.TestCase):
                 'players': [{'player_id': f'fixture-{i}', 'name': None, 'eligible_positions': ['SP'], 'roster_status': 'ACTIVE'}]} for i in range(12)],
             'standings': [{'team_id': str(i), 'raw': {'points': '1-0-0', 'totalPointsFor': i}} for i in range(12)]}
         teams, players = build_records(self.data)
+        self.data['pool'] = [dict(fantraxId=p['Player ID'], name='Name unavailable', mlbTeam=None,
+            availability='UNKNOWN', positions='SP', teamId=p['Fantasy Team ID'],
+            teamName=teams[i]['Team'], sourceStatus='T') for i, p in enumerate(players)]
+        self.data['transactions'] = None
         self.client = FakeClient({'Teams': [{'fields': t} for t in teams], 'Players': [{'fields': p} for p in players]})
         self.client.old['Players'][0]['fields'].update({'Player': 'Verified fixture name', 'Private notes': 'SECRET_SENTINEL'})
 
