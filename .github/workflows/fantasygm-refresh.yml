@@ -20,9 +20,8 @@ jobs:
     timeout-minutes: 15
     env:
       FANTRAX_USER_SECRET_ID: ${{ secrets.FANTRAX_USER_SECRET_ID }}
-      AIRTABLE_TOKEN: ${{ secrets.AIRTABLE_TOKEN }}
-      AIRTABLE_BASE_ID: appA7fcI1VWfwOUXq
-    steps:
+      
+          steps:
       - uses: actions/checkout@v4
         with:
           persist-credentials: false
@@ -41,12 +40,10 @@ jobs:
           npm install --no-save --package-lock=false playwright@1.62.1
           npx playwright install --with-deps chromium
           node test_website_e2e.mjs
-      - name: Validate configuration
-        run: python cloud_sync.py --check-config
+      
       - name: Collect Fantrax once
         run: python fantrax_refresh.py --root "$RUNNER_TEMP/fantasygm" --league-id gxq8uqpqmg5m5edj --no-prompt
-      - name: Refresh shared Airtable data
-        run: python cloud_sync.py --root "$RUNNER_TEMP/fantasygm"
+     
       - name: Build complete sanitized website snapshot
         run: python public_snapshot.py --root "$RUNNER_TEMP/fantasygm"
       - name: Publish snapshot atomically
