@@ -1,55 +1,83 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Desert Rats — LONGBALL Dashboard</title>
-<style>
-* { box-sizing: border-box; margin: 0; padding: 0; }
-body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; color: #1a1a1a; font-size: 13px; background: #fff; padding: 1.5rem; max-width: 1100px; margin: 0 auto; }
-h2 { font-size: 15px; font-weight: 500; padding: 8px 12px; background: #f0f0ee; border-radius: 8px; margin: 20px 0 10px; }
-table { width: 100%; border-collapse: collapse; font-size: 12px; margin-bottom: 6px; }
-th { text-align: left; font-weight: 500; font-size: 10px; color: #666; padding: 5px 7px; border-bottom: 0.5px solid #ddd; text-transform: uppercase; letter-spacing: 0.04em; }
-td { padding: 6px 7px; border-bottom: 0.5px solid #eee; vertical-align: top; line-height: 1.5; }
-tr:last-child td { border-bottom: none; }
-.badge { display: inline-block; font-size: 10px; font-weight: 500; padding: 2px 6px; border-radius: 8px; white-space: nowrap; }
-.g { background: #EAF3DE; color: #3B6D11; }
-.r { background: #FCEBEB; color: #A32D2D; }
-.a { background: #FAEEDA; color: #854F0B; }
-.b { background: #E6F1FB; color: #185FA5; }
-.gr { background: #F1EFE8; color: #5F5E5A; }
-.note { font-size: 11px; color: #888; margin-top: 2px; }
-.v { font-size: 10px; color: #3B6D11; }
-.asm { font-size: 10px; color: #A32D2D; font-style: italic; }
-.card { border-radius: 10px; padding: 10px 13px; margin-bottom: 8px; font-size: 12px; line-height: 1.6; border: 0.5px solid #ddd; }
-.card strong, .card .ct { font-weight: 500; }
-.card .ct { font-size: 13px; margin-bottom: 4px; display: block; }
-.card .cb { color: #555; }
-.lg { border-left: 3px solid #639922; }
-.lr { border-left: 3px solid #E24B4A; }
-.la { border-left: 3px solid #EF9F27; }
-.lb { border-left: 3px solid #185FA5; }
-.gp { display: inline-block; font-size: 11px; font-weight: 500; padding: 1px 7px; border-radius: 8px; }
-.gp6 { background: #EAF3DE; color: #3B6D11; }
-.gp5 { background: #FAEEDA; color: #854F0B; }
-.nb { font-size: 9px; font-weight: 500; padding: 1px 4px; border-radius: 3px; background: #EEEDFE; color: #3C3489; margin-left: 3px; }
-.tbox { background: #f5f5f3; border-radius: 7px; padding: 7px 10px; margin-top: 5px; font-size: 11px; line-height: 1.7; }
-.tbox strong { font-weight: 500; display: block; margin-bottom: 2px; }
-.sum { display: grid; grid-template-columns: repeat(4,1fr); gap: 8px; margin-bottom: 16px; }
-.sc { border-radius: 8px; padding: 9px; text-align: center; }
-.sc .sl { font-size: 10px; color: #666; margin-bottom: 3px; text-transform: uppercase; letter-spacing: 0.03em; }
-.sc .sv { font-size: 16px; font-weight: 500; }
-strong { font-weight: 500; }
-</style>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>FantasyGM2027 · Desert Rats Front Office</title>
+  <link rel="stylesheet" href="public/fantasygm.css">
 </head>
 <body>
-<div style="font-size:12px;font-weight:500;margin-bottom:14px">Desert Rats · LONGBALL</div>
-<p id="freshness" role="status">Checking latest refresh…</p>
-<h2>⚾ Desert Rats roster</h2>
-<table><thead><tr><th>Player / Fantrax ID</th><th>Position</th><th>Status</th></tr></thead><tbody id="roster-rows"></tbody></table>
-<h2>🏆 Season standings</h2>
-<table><thead><tr><th>Team</th><th>Record</th><th>Season points</th></tr></thead><tbody id="standings-rows"></tbody></table>
-<p class="note">Matchups, injuries, ratings and analysis are unavailable from this refresh.</p>
-<script type="module" src="public/website.mjs"></script>
+  <main class="shell">
+    <header class="topbar">
+      <div class="brand">
+        <div class="mark">DR</div>
+        <div><h1>FantasyGM2027 · Desert Rats Front Office</h1><p>LONGBALL · verified-data dashboard</p></div>
+      </div>
+      <div id="freshness" class="freshness" role="status">Checking latest verified refresh…</div>
+    </header>
+
+    <nav class="nav" aria-label="FantasyGM sections">
+      <button data-view="daily">Daily Command Center</button>
+      <button data-view="weekly">Weekly Outlook</button>
+      <button data-view="free-agents">Free Agent Board</button>
+      <button data-view="player-lab">Player Lab</button>
+    </nav>
+
+    <section id="view-home" class="view active">
+      <div class="hero"><h2>Desert Rats Front Office</h2><p>One shared Fantrax snapshot. No guessed ratings. External intelligence is added only when verified.</p></div>
+      <div id="home-metrics" class="grid" data-requires-data></div>
+      <div class="panel">
+        <div class="panelhead"><div><h3>Migration status</h3><div class="sub">Standalone GitHub-backed version</div></div></div>
+        <div class="notice">The existing Fantrax collector and shared <strong>fantasygm.json</strong> remain unchanged. This migration replaces only the website layer.</div>
+      </div>
+    </section>
+
+    <section id="view-daily" class="view">
+      <div class="backrow"><button class="back">← Back to Home</button></div>
+      <div class="panel">
+        <div class="panelhead"><div><h3>Daily Command Center</h3><div class="sub">Desert Rats roster · verified current snapshot</div></div></div>
+        <div id="daily-note" class="notice"></div>
+        <div class="tablewrap" data-requires-data><table><thead><tr><th>Player</th><th>Position</th><th>Status</th></tr></thead><tbody id="daily-rows"></tbody></table></div>
+      </div>
+    </section>
+
+    <section id="view-weekly" class="view">
+      <div class="backrow"><button class="back">← Back to Home</button></div>
+      <div class="panel">
+        <div class="panelhead"><div><h3>Weekly Outlook · Hitters</h3><div class="sub">Hitters kept separate from pitchers</div></div></div>
+        <div class="tablewrap" data-requires-data><table><thead><tr><th>Player</th><th>Position</th><th>MLB Team</th></tr></thead><tbody id="weekly-hitters"></tbody></table></div>
+      </div>
+      <div class="panel">
+        <div class="panelhead"><div><h3>Weekly Outlook · Pitchers</h3><div class="sub">Compact 1–2 start format</div></div></div>
+        <div id="weekly-note" class="notice"></div>
+        <div class="tablewrap" data-requires-data><table><thead><tr><th>Pitcher</th><th>Pos</th><th>Start 1</th><th>Start 2</th><th>Rating</th></tr></thead><tbody id="weekly-pitchers"></tbody></table></div>
+      </div>
+    </section>
+
+    <section id="view-free-agents" class="view">
+      <div class="backrow"><button class="back">← Back to Home</button></div>
+      <div class="panel">
+        <div class="panelhead"><div><h3>Free Agent Board</h3><div class="sub">Verified Fantrax ownership and eligibility</div></div></div>
+        <div class="toolbar"><input id="fa-search" type="search" placeholder="Search player"><select id="fa-pos"><option value="">All positions</option><option>C</option><option>1B</option><option>2B</option><option>3B</option><option>SS</option><option>OF</option><option>SP</option><option>RP</option></select></div>
+        <div id="fa-note" class="notice"></div>
+        <div class="tablewrap" data-requires-data><table><thead><tr><th>Player</th><th>Position</th><th>Availability</th><th>FantasyGM</th></tr></thead><tbody id="fa-rows"></tbody></table></div>
+      </div>
+      <div class="panel">
+        <div class="panelhead"><div><h3>Recent ADD / DROP activity</h3><div class="sub">Fantrax recent transaction page only</div></div></div>
+        <div class="tablewrap" data-requires-data><table><thead><tr><th>Date</th><th>Fantasy Team</th><th>Action</th><th>Player</th></tr></thead><tbody id="transaction-rows"></tbody></table></div>
+      </div>
+    </section>
+
+    <section id="view-player-lab" class="view">
+      <div class="backrow"><button class="back">← Back to Home</button></div>
+      <div class="panel">
+        <div class="panelhead"><div><h3>Player Lab</h3><div class="sub">Research surface for a selected player</div></div></div>
+        <div class="toolbar"><input id="lab-search" type="search" placeholder="Type a player name"></div>
+        <div id="lab-results" class="toolbar"></div>
+      </div>
+      <div id="player-detail" class="panel"><div class="empty">Choose a player to inspect verified Fantrax identity, team and eligibility.</div></div>
+    </section>
+  </main>
+  <script type="module" src="public/fantasygm-app.mjs"></script>
 </body>
 </html>
