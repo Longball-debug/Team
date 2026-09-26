@@ -33,7 +33,7 @@ There are no remaining active ChatGPT Sites imports or configuration dependencie
 
 ## REPORTS behavior retained
 
-The unchanged server routes use `env.REPORTS.get`, `put`, `delete`, and conditional writes. Existing keys remain `daily/current.json`, `weeks/YYYY-MM-DD.json`, `evidence/fantrax.json`, and `evidence/roster.json`. Daily cache expiry, evidence validation/expiry and write-once Monday baselines retain their current behavior. The app continues to call Fantrax directly and enrich data through MLB; it has not switched to the GitHub snapshot.
+The unchanged server routes use `env.REPORTS.get`, `put`, `delete`, and conditional writes. Existing keys remain `daily/current.json`, `weeks/YYYY-MM-DD.json`, `evidence/fantrax.json`, and `evidence/roster.json`. Daily cache expiry, evidence validation/expiry and write-once Monday baselines retain their current behavior. Migration step 4 now reads the published GitHub snapshot for overlapping league data and continues MLB enrichment. See DATA-SOURCES.md for retained manual evidence and refresh behavior.
 
 ## Before a later deployment
 
