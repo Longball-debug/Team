@@ -1,0 +1,9 @@
+.home{min-height:100svh;max-width:760px;margin:auto;padding:40px 24px;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center}
+.logo{width:min(340px,80vw);height:auto;border-radius:12px;display:block}
+.home h1{font-size:clamp(28px,5vw,40px);letter-spacing:-.04em;margin:26px 0 8px}
+.home p{font-size:18px;color:#b4c8d8;margin:0 0 30px}
+.navigation{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;width:100%}
+.navigation a{display:flex;align-items:center;justify-content:center;min-height:76px;padding:18px;border:1px solid #377960;border-radius:8px;background:#193329;color:#d9f9ed;text-decoration:none;font-size:18px;font-weight:650}
+.navigation a:hover{background:#224739}
+.navigation a:focus-visible{outline:3px solid #77e0b2;outline-offset:4px}
+@media(max-width:520px){.home{padding:28px 20px}.navigation{grid-template-columns:1fr}.navigation a{min-height:64px}}

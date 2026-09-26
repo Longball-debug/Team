@@ -1,0 +1,31 @@
+@import 'tailwindcss';
+:root{color-scheme:dark;--background:#09131d;--foreground:#edf3f7;--border:#263847;--font-sans:var(--font-geist-sans)}
+*{box-sizing:border-box}body{margin:0;background:var(--background);color:var(--foreground);font-family:var(--font-geist-sans),Arial,sans-serif;font-size:16px}.dcc{max-width:1260px;margin:auto;padding:24px 32px 48px}.dcc-masthead{display:flex;justify-content:space-between;align-items:center;gap:16px;border-bottom:2px solid #35cf9b;padding-bottom:18px}.dcc-masthead p{color:#71d9b7;font-size:12px;letter-spacing:.14em;font-weight:750;margin:0 0 5px}.dcc-masthead h1{font-size:28px;letter-spacing:-.04em;margin:0;font-weight:750}.dcc-masthead button{background:#193329;border:1px solid #377960;color:#b7f8df;padding:9px 18px;border-radius:6px;font-size:14px;font-weight:650;cursor:pointer}.dcc-masthead button:disabled{opacity:.6;cursor:wait}.freshness{display:flex;gap:18px;flex-wrap:wrap;color:#9dafbd;font-size:12px;padding:12px 0}.freshness strong{color:#e1eaf0;font-weight:600}section{margin:16px 0 24px}h2{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;font-size:18px;font-weight:700;letter-spacing:-.02em;margin:0 0 10px}h2>span{font-family:var(--font-geist-mono),monospace;color:#72d8b4;font-size:12px}h2 small{font-size:12px;font-weight:400;color:#9dafbd;letter-spacing:0;margin-left:auto}.actions{display:grid;grid-template-columns:repeat(auto-fit,minmax(205px,1fr));gap:8px}.action{border:1px solid #354236;border-left:3px solid #d8b55f;background:#17241f;padding:11px 14px;border-radius:4px}.watch{display:block;color:#e4c678;font-size:12px;font-weight:700;letter-spacing:.06em;margin-bottom:6px}.action p{font-size:14px;margin:7px 0 0;font-variant-numeric:tabular-nums}.action p span{color:#9eada5}.board{border:1px solid var(--border);border-radius:6px;overflow:auto;background:#0e1b27}table{width:100%;border-collapse:collapse;text-align:left;font-size:14px}th{background:#162635;color:#9eb3c3;font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.05em;padding:10px 14px;white-space:nowrap}td{padding:9px 14px;border-top:1px solid #21313e;font-variant-numeric:tabular-nums}tbody tr:hover{background:#142634}.player{font-weight:600;white-space:nowrap}.player small{font-weight:500;color:#9cabb7;font-size:12px;margin-left:8px}.signal{font-size:13px;white-space:nowrap}.up,.favorable{color:#77e0b2}.down,.tough{color:#f2ad8f}.stable,.neutral{color:#b4c8d8}.rating{font-size:12px;padding:3px 8px;border:1px solid currentColor;border-radius:4px;white-space:nowrap}.quiet,.load-status{font-size:14px;color:#aebcc7;margin:12px 0}.sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0)}button:focus-visible,.board:focus-visible{outline:2px solid #77e0b2;outline-offset:3px}@media(max-width:650px){.dcc{padding:18px 14px 32px}.dcc-masthead h1{font-size:23px}.freshness{gap:7px 15px}h2{font-size:16px}h2 small{width:100%;margin-left:26px}.actions{grid-template-columns:1fr 1fr}.action{padding:9px}.action .player{white-space:normal}td,th{padding:9px 11px}}@media(max-width:400px){.actions{grid-template-columns:1fr}.dcc-masthead{align-items:flex-start}.dcc-masthead button{padding:8px}}
+
+.ir-label{font-size:14px;font-weight:600;color:#b4c8d8;margin:14px 0 8px}
+
+/* Daily report table alignment. */
+.dcc h2{align-items:center;line-height:1.4}
+.dcc h2>span{display:inline-flex;align-items:center;justify-content:center;flex:0 0 20px;line-height:1.4}
+.dcc .board th,.dcc .board td{height:42px;padding:10px 12px;text-align:left;vertical-align:middle;line-height:20px}
+.dcc .ir-label{line-height:20px;margin:16px 0 8px}
+.dcc h2+.ir-label{margin-top:12px}
+.dcc .board[aria-label="Today’s hitter matchups"] table{min-width:1080px;table-layout:fixed}
+.dcc .board[aria-label="Today’s hitter matchups"] th[data-column="Player"]{width:30%}
+.dcc .board[aria-label="Today’s hitter matchups"] th[data-column="Opponent"]{width:24%}
+.dcc .board[aria-label="Today’s hitter matchups"] th[data-column="Opposing SP"]{width:19%}
+.dcc .board[aria-label="Today’s hitter matchups"] th[data-column="Matchup rating"]{width:15%}
+.dcc .board[aria-label="Today’s hitter matchups"] th[data-column="Trend"]{width:12%}
+.dcc .board[aria-label="Pitcher recent performance"] table{table-layout:fixed;min-width:560px}
+.dcc .board[aria-label="Pitcher recent performance"] th:first-child{width:50%}
+.dcc .board[aria-label="Pitcher recent performance"] th:not(:first-child){width:25%}
+.dcc section:is([aria-label="Reserve"],[aria-label="Injured Reserve"]) table{table-layout:fixed;min-width:480px}
+.dcc section:is([aria-label="Reserve"],[aria-label="Injured Reserve"]) th:first-child{width:40%}
+.dcc section:is([aria-label="Reserve"],[aria-label="Injured Reserve"]) th:last-child{width:60%}
+
+/* Verified hitter matchup hand and traffic-light rating. */
+.dcc .board[aria-label="Today’s hitter matchups"] .neutral{color:#f0c75e}
+.dcc .board[aria-label="Today’s hitter matchups"] th[data-column="Player"]{width:26%}
+.dcc .board[aria-label="Today’s hitter matchups"] th[data-column="Opponent"]{width:20%}
+.dcc .board[aria-label="Today’s hitter matchups"] th[data-column="Opposing SP"]{width:18%}
+.dcc .board[aria-label="Today’s hitter matchups"] th[data-column="Hand"]{width:9%}
