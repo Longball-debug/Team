@@ -8,6 +8,8 @@ on:
       - '.github/workflows/fantasygm-refresh.yml'
       - 'public_snapshot.py'
       - 'shared_snapshot.py'
+      - 'mlb_schedule.py'
+      - 'add_weekly_schedule.py'
       - 'wrangler.jsonc'
       - 'index.html'
       - 'public/website.mjs'
@@ -54,6 +56,9 @@ jobs:
 
       - name: Build complete sanitized website snapshot
         run: python public_snapshot.py --root "$RUNNER_TEMP/fantasygm"
+
+      - name: Attach verified MLB weekly schedule
+        run: python add_weekly_schedule.py --snapshot public/fantasygm.json
 
       - name: Prepare Cloudflare static site
         run: |
