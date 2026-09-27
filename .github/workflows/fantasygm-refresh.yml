@@ -2,6 +2,8 @@ name: FantasyGM cloud refresh
 on:
   workflow_dispatch:
   push:
+    branches:
+      - main
     paths:
       - '.github/workflows/fantasygm-refresh.yml'
       - 'public_snapshot.py'
