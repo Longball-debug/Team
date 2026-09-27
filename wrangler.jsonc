@@ -1,0 +1,8 @@
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "fantasygm2027-desert-rats",
+  "compatibility_date": "2026-09-26",
+  "assets": {
+    "directory": "./dist"
+  }
+}
