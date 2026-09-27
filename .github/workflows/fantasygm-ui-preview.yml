@@ -12,6 +12,10 @@ on:
       - '.github/workflows/fantasygm-ui-preview.yml'
   workflow_dispatch:
 
+concurrency:
+  group: fantasygm-ui-preview
+  cancel-in-progress: true
+
 jobs:
   preview:
     runs-on: ubuntu-latest
