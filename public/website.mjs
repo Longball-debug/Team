@@ -46,14 +46,22 @@ function desertRatsTeam(data) {
 }
 
 function normalizePositions(value) {
-  if (Array.isArray(value)) return value.map(String);
+  if (Array.isArray(value)) return value.map(v => String(v).trim()).filter(Boolean);
   if (!value) return [];
-  return String(value).split('/').map(v => v.trim()).filter(Boolean);
+  return String(value)
+    .split(/[\/,|]/)
+    .map(v => v.trim())
+    .filter(Boolean);
+}
+
+function formatPositions(value) {
+  const positions = normalizePositions(value);
+  return positions.length ? positions.join('/') : String(value || 'Unavailable');
 }
 
 function isPitcher(record) {
   const positions = normalizePositions(record.positions ?? record.Positions);
-  return positions.some(p => ['P','SP','RP'].includes(p.toUpperCase()));
+  return positions.some(p => ['P', 'SP', 'RP'].includes(p.toUpperCase()));
 }
 
 function rosterRecords(data) {
@@ -64,11 +72,11 @@ function rosterRecords(data) {
     .map(p => ({
       Player: p.Player,
       MLB: p['MLB Team'],
-      Positions: p.Positions,
+      Positions: formatPositions(p.positions ?? p.Positions),
       Status: p.Status,
       pitcher: isPitcher(p),
     }))
-    .sort((a,b) => String(a.Player).localeCompare(String(b.Player)));
+    .sort((a, b) => String(a.Player).localeCompare(String(b.Player)));
 }
 
 function renderSummary(data, roster) {
@@ -105,12 +113,12 @@ function freeAgents(data, query='', type='all') {
     if (!isFA) return false;
     if (type === 'pitchers' && !isPitcher(p)) return false;
     if (type === 'hitters' && isPitcher(p)) return false;
-    const haystack = [p.name,p.mlbTeam,normalizePositions(p.positions).join(' '),p.availability].join(' ').toLowerCase();
+    const haystack = [p.name,p.mlbTeam,formatPositions(p.positions),p.availability].join(' ').toLowerCase();
     return !q || haystack.includes(q);
   }).slice(0,250).map(p => ({
     Player:p.name,
     MLB:p.mlbTeam,
-    Positions:normalizePositions(p.positions).join('/'),
+    Positions:formatPositions(p.positions),
     Availability:p.availability,
   }));
   replaceRows('fa-rows', records, ['Player','MLB','Positions','Availability']);
@@ -120,11 +128,11 @@ function playerLab(data, query='') {
   const q = query.trim().toLowerCase();
   const records = (data.pool || []).filter(p => {
     if (!q) return false;
-    return [p.name,p.mlbTeam,normalizePositions(p.positions).join(' '),p.teamName,p.availability].join(' ').toLowerCase().includes(q);
+    return [p.name,p.mlbTeam,formatPositions(p.positions),p.teamName,p.availability].join(' ').toLowerCase().includes(q);
   }).slice(0,200).map(p => ({
     Player:p.name,
     MLB:p.mlbTeam,
-    Positions:normalizePositions(p.positions).join('/'),
+    Positions:formatPositions(p.positions),
     Ownership:p.teamName || p.availability || 'Unavailable',
   }));
   replaceRows('lab-rows', records, ['Player','MLB','Positions','Ownership']);
