@@ -53,19 +53,6 @@ jobs:
       - name: Build complete sanitized website snapshot
         run: python public_snapshot.py --root "$RUNNER_TEMP/fantasygm"
 
-      - name: Publish snapshot to GitHub
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          git config user.name 'github-actions[bot]'
-          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add public/fantasygm.json
-          if ! git diff --cached --quiet; then
-            git commit -m 'Refresh sanitized FantasyGM website data'
-            HEADER="AUTHORIZATION: basic $(printf 'x-access-token:%s' "$GH_TOKEN" | base64 -w0)"
-            git -c "http.https://github.com/.extraheader=$HEADER" push origin HEAD:main
-          fi
-
       - name: Prepare Cloudflare static site
         run: |
           rm -rf dist
@@ -81,3 +68,17 @@ jobs:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           command: deploy
+
+      - name: Publish snapshot to GitHub
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add public/fantasygm.json
+          if ! git diff --cached --quiet; then
+            git commit -m 'Refresh sanitized FantasyGM website data'
+            HEADER="AUTHORIZATION: basic $(printf 'x-access-token:%s' "$GH_TOKEN" | base64 -w0)"
+            git -c "http.https://github.com/.extraheader=$HEADER" push origin HEAD:main || echo 'Snapshot push skipped because main advanced; Cloudflare deploy already succeeded.'
+          fi
