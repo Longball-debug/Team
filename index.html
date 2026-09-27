@@ -2,54 +2,53 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Desert Rats — LONGBALL Dashboard</title>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>FantasyGM2027 · Desert Rats Front Office</title>
 <style>
-* { box-sizing: border-box; margin: 0; padding: 0; }
-body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; color: #1a1a1a; font-size: 13px; background: #fff; padding: 1.5rem; max-width: 1100px; margin: 0 auto; }
-h2 { font-size: 15px; font-weight: 500; padding: 8px 12px; background: #f0f0ee; border-radius: 8px; margin: 20px 0 10px; }
-table { width: 100%; border-collapse: collapse; font-size: 12px; margin-bottom: 6px; }
-th { text-align: left; font-weight: 500; font-size: 10px; color: #666; padding: 5px 7px; border-bottom: 0.5px solid #ddd; text-transform: uppercase; letter-spacing: 0.04em; }
-td { padding: 6px 7px; border-bottom: 0.5px solid #eee; vertical-align: top; line-height: 1.5; }
-tr:last-child td { border-bottom: none; }
-.badge { display: inline-block; font-size: 10px; font-weight: 500; padding: 2px 6px; border-radius: 8px; white-space: nowrap; }
-.g { background: #EAF3DE; color: #3B6D11; }
-.r { background: #FCEBEB; color: #A32D2D; }
-.a { background: #FAEEDA; color: #854F0B; }
-.b { background: #E6F1FB; color: #185FA5; }
-.gr { background: #F1EFE8; color: #5F5E5A; }
-.note { font-size: 11px; color: #888; margin-top: 2px; }
-.v { font-size: 10px; color: #3B6D11; }
-.asm { font-size: 10px; color: #A32D2D; font-style: italic; }
-.card { border-radius: 10px; padding: 10px 13px; margin-bottom: 8px; font-size: 12px; line-height: 1.6; border: 0.5px solid #ddd; }
-.card strong, .card .ct { font-weight: 500; }
-.card .ct { font-size: 13px; margin-bottom: 4px; display: block; }
-.card .cb { color: #555; }
-.lg { border-left: 3px solid #639922; }
-.lr { border-left: 3px solid #E24B4A; }
-.la { border-left: 3px solid #EF9F27; }
-.lb { border-left: 3px solid #185FA5; }
-.gp { display: inline-block; font-size: 11px; font-weight: 500; padding: 1px 7px; border-radius: 8px; }
-.gp6 { background: #EAF3DE; color: #3B6D11; }
-.gp5 { background: #FAEEDA; color: #854F0B; }
-.nb { font-size: 9px; font-weight: 500; padding: 1px 4px; border-radius: 3px; background: #EEEDFE; color: #3C3489; margin-left: 3px; }
-.tbox { background: #f5f5f3; border-radius: 7px; padding: 7px 10px; margin-top: 5px; font-size: 11px; line-height: 1.7; }
-.tbox strong { font-weight: 500; display: block; margin-bottom: 2px; }
-.sum { display: grid; grid-template-columns: repeat(4,1fr); gap: 8px; margin-bottom: 16px; }
-.sc { border-radius: 8px; padding: 9px; text-align: center; }
-.sc .sl { font-size: 10px; color: #666; margin-bottom: 3px; text-transform: uppercase; letter-spacing: 0.03em; }
-.sc .sv { font-size: 16px; font-weight: 500; }
-strong { font-weight: 500; }
+:root{--ink:#151515;--muted:#6c6c6c;--line:#dededb;--panel:#f6f6f3;--accent:#242424}*{box-sizing:border-box}body{margin:0;background:#fff;color:var(--ink);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}.wrap{max-width:1180px;margin:auto;padding:28px 24px 48px}.brand{font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#555}.hero{padding:56px 0 34px}.hero h1{font-size:42px;line-height:1.05;margin:0 0 10px}.hero p{margin:0;color:var(--muted);font-size:15px}.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}.navcard{display:block;text-decoration:none;color:inherit;border:1px solid var(--line);border-radius:16px;padding:24px;min-height:126px;background:#fff;cursor:pointer;text-align:left}.navcard:hover{border-color:#999}.navcard strong{display:block;font-size:20px;margin-bottom:8px}.navcard span{color:var(--muted);font-size:13px}.page{display:none}.page.active{display:block}.bar{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:18px}.bar h1{font-size:28px;margin:0}.btn{border:1px solid var(--line);background:#fff;border-radius:9px;padding:8px 11px;font:inherit;cursor:pointer}.btn:hover{border-color:#999}.status{font-size:12px;color:var(--muted);margin:8px 0 18px}.section{margin:22px 0}.section h2{font-size:15px;margin:0 0 10px;padding:9px 12px;background:var(--panel);border-radius:9px}.tablewrap{overflow:auto;border:1px solid var(--line);border-radius:10px}table{width:100%;border-collapse:collapse;font-size:12px}th{text-align:left;font-size:10px;text-transform:uppercase;letter-spacing:.04em;color:#666;padding:8px;border-bottom:1px solid var(--line)}td{padding:8px;border-bottom:1px solid #eee}tr:last-child td{border-bottom:0}.note{font-size:12px;color:var(--muted)}.search{width:100%;max-width:420px;border:1px solid var(--line);border-radius:9px;padding:9px 11px;font:inherit;margin-bottom:12px}.empty{padding:16px;color:var(--muted);font-size:12px}.pill{display:inline-block;border-radius:999px;background:var(--panel);padding:2px 7px;font-size:10px}@media(max-width:700px){.grid{grid-template-columns:1fr}.hero h1{font-size:34px}.wrap{padding:20px 15px 40px}.bar{align-items:flex-start;flex-direction:column}}
 </style>
 </head>
 <body>
-<div style="font-size:12px;font-weight:500;margin-bottom:14px">Desert Rats · LONGBALL</div>
-<p id="freshness" role="status">Checking latest refresh…</p>
-<h2>⚾ Desert Rats roster</h2>
-<table><thead><tr><th>Player / Fantrax ID</th><th>Position</th><th>Status</th></tr></thead><tbody id="roster-rows"></tbody></table>
-<h2>🏆 Season standings</h2>
-<table><thead><tr><th>Team</th><th>Record</th><th>Season points</th></tr></thead><tbody id="standings-rows"></tbody></table>
-<p class="note">Matchups, injuries, ratings and analysis are unavailable from this refresh.</p>
+<div class="wrap">
+  <main id="home" class="page active">
+    <div class="brand">FantasyGM2027 · Desert Rats Front Office</div>
+    <div class="hero"><h1>Desert Rats<br>Front Office</h1><p>Verified league data. One shared refresh pipeline.</p></div>
+    <div class="grid">
+      <button class="navcard" data-page="daily"><strong>Daily Command Center</strong><span>Current roster, status and league snapshot.</span></button>
+      <button class="navcard" data-page="weekly"><strong>Weekly Outlook</strong><span>Roster planning view. Matchup enrichment will be layered onto verified data.</span></button>
+      <button class="navcard" data-page="freeagents"><strong>Free Agent Board</strong><span>Search the verified Fantrax player pool.</span></button>
+      <button class="navcard" data-page="lab"><strong>Player Lab</strong><span>Search any player in the verified snapshot.</span></button>
+    </div>
+  </main>
+
+  <section id="daily" class="page">
+    <div class="bar"><h1>Daily Command Center</h1><button class="btn homebtn">Back to Home</button></div>
+    <div class="status" data-status>Loading verified snapshot…</div>
+    <div class="section"><h2>Desert Rats Roster</h2><div class="tablewrap"><table><thead><tr><th>Player</th><th>MLB</th><th>Position</th><th>Status</th></tr></thead><tbody id="daily-roster"></tbody></table></div></div>
+    <div class="section"><h2>League Standings Snapshot</h2><div class="tablewrap"><table><thead><tr><th>Team</th><th>Record</th><th>Points</th></tr></thead><tbody id="daily-standings"></tbody></table></div></div>
+  </section>
+
+  <section id="weekly" class="page">
+    <div class="bar"><h1>Weekly Outlook</h1><button class="btn homebtn">Back to Home</button></div>
+    <div class="status" data-status>Loading verified snapshot…</div>
+    <p class="note">This migration view uses only fields currently verified in the shared Fantrax snapshot. Weekly opponents, projected starts and expert ratings are not shown until those sources are connected.</p>
+    <div class="section"><h2>Current Desert Rats</h2><div class="tablewrap"><table><thead><tr><th>Player</th><th>MLB</th><th>Eligible Positions</th><th>Roster Status</th></tr></thead><tbody id="weekly-roster"></tbody></table></div></div>
+  </section>
+
+  <section id="freeagents" class="page">
+    <div class="bar"><h1>Free Agent Board</h1><button class="btn homebtn">Back to Home</button></div>
+    <div class="status" data-status>Loading verified snapshot…</div>
+    <input id="fa-search" class="search" placeholder="Search free agents by player, MLB team or position">
+    <div class="tablewrap"><table><thead><tr><th>Player</th><th>MLB</th><th>Positions</th><th>Availability</th></tr></thead><tbody id="fa-rows"></tbody></table></div>
+  </section>
+
+  <section id="lab" class="page">
+    <div class="bar"><h1>Player Lab</h1><button class="btn homebtn">Back to Home</button></div>
+    <div class="status" data-status>Loading verified snapshot…</div>
+    <input id="lab-search" class="search" placeholder="Search any player">
+    <div class="tablewrap"><table><thead><tr><th>Player</th><th>MLB</th><th>Positions</th><th>Fantasy Team / Availability</th></tr></thead><tbody id="lab-rows"></tbody></table></div>
+  </section>
+</div>
 <script type="module" src="public/website.mjs"></script>
 </body>
 </html>
