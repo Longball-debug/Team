@@ -94,7 +94,6 @@ function renderCore(data) {
   replaceRows('daily-pitchers', pitchers, ['Player','MLB','Positions','Status']);
   replaceRows('weekly-hitters', hitters, ['Player','MLB','Positions','Status']);
   replaceRows('weekly-pitchers', pitchers, ['Player','MLB','Positions','Status']);
-  replaceRows('daily-standings', data.teams.map(t => ({Team:t.Team, Record:t.Record, Points:t.Points})), ['Team','Record','Points']);
   renderSummary(data, roster);
 }
 
@@ -147,7 +146,7 @@ async function refresh() {
   } catch {
     snapshot = null;
     setStatus('Current data unavailable: the latest complete refresh could not be verified.');
-    ['daily-hitters','daily-pitchers','weekly-hitters','weekly-pitchers','daily-standings','fa-rows','lab-rows'].forEach(id => {
+    ['daily-hitters','daily-pitchers','weekly-hitters','weekly-pitchers','fa-rows','lab-rows'].forEach(id => {
       const body = document.getElementById(id);
       if (body) body.replaceChildren();
     });
