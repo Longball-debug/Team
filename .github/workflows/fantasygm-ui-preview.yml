@@ -1,0 +1,43 @@
+name: FantasyGM UI preview
+on:
+  push:
+    branches:
+      - fantasygm-ui-migration
+    paths:
+      - 'index.html'
+      - 'public/website.mjs'
+      - 'public/snapshot-contract.mjs'
+      - 'public/fantasygm.json'
+      - 'wrangler.preview.jsonc'
+      - '.github/workflows/fantasygm-ui-preview.yml'
+  workflow_dispatch:
+
+jobs:
+  preview:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+
+      - name: Verify snapshot contract
+        run: node --test test_snapshot_contract.mjs
+
+      - name: Prepare preview site
+        run: |
+          rm -rf dist
+          mkdir -p dist/public
+          cp index.html dist/index.html
+          cp public/website.mjs dist/public/website.mjs
+          cp public/snapshot-contract.mjs dist/public/snapshot-contract.mjs
+          cp public/fantasygm.json dist/public/fantasygm.json
+
+      - name: Deploy preview to Cloudflare Workers
+        uses: cloudflare/wrangler-action@v4
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: deploy --config wrangler.preview.jsonc
