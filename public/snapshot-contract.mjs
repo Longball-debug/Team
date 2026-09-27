@@ -1,4 +1,47 @@
 export const SNAPSHOT_URL = 'https://raw.githubusercontent.com/Longball-debug/Team/main/public/fantasygm.json';
+
+function cleanPool(pool) {
+  if (!Array.isArray(pool)) return [];
+  return pool.map(p => ({
+    fantraxId:p.fantraxId,
+    name:p.name,
+    mlbTeam:p.mlbTeam,
+    availability:p.availability,
+    positions:p.positions,
+    teamId:p.teamId,
+    teamName:p.teamName,
+    sourceStatus:p.sourceStatus,
+  }));
+}
+
+function cleanWeeklySchedule(schedule) {
+  if (!schedule || !Array.isArray(schedule.days) || schedule.days.length !== 7 || !schedule.teams || typeof schedule.teams !== 'object') return null;
+  const teams = {};
+  for (const [abbr, dates] of Object.entries(schedule.teams)) {
+    if (typeof abbr !== 'string' || !dates || typeof dates !== 'object') continue;
+    teams[abbr] = {};
+    for (const [day, games] of Object.entries(dates)) {
+      if (!Array.isArray(games)) continue;
+      teams[abbr][day] = games.map(g => ({
+        opponent:g.opponent,
+        home_away:g.home_away,
+        game_pk:g.game_pk,
+        team_probable_pitcher:g.team_probable_pitcher,
+        opponent_probable_pitcher:g.opponent_probable_pitcher,
+        status:g.status,
+      }));
+    }
+  }
+  return {
+    source:schedule.source,
+    week_start:schedule.week_start,
+    week_end:schedule.week_end,
+    days:[...schedule.days],
+    games_seen:schedule.games_seen,
+    teams,
+  };
+}
+
 export function validateSnapshot(value, now = Date.now()) {
   const fail = () => { throw new Error('The latest complete Fantrax refresh is unavailable or overdue.'); };
   if (!value || value.schema_version !== 1 || value.league_id !== 'gxq8uqpqmg5m5edj') fail();
@@ -8,11 +51,19 @@ export function validateSnapshot(value, now = Date.now()) {
   const teams = new Set(value.teams.map(t => t['Team ID']));
   if (teams.size !== 12 || value.teams.some(t => typeof t['Team ID'] !== 'string' || !t['Team ID'] || typeof t.Team !== 'string' || !t.Team.trim() || (t.Record !== undefined && !/^\d+-\d+-\d+$/.test(t.Record)) || (t.Points !== undefined && (typeof t.Points !== 'number' || !Number.isFinite(t.Points))))) fail();
   if (value.teams.filter(t => t.Team.trim().toLowerCase() === 'desert rats').length !== 1) fail();
-  if (new Set(value.players.map(p => p['Player ID'])).size !== value.players.length || value.players.some(p => typeof p['Player ID'] !== 'string' || !p['Player ID'] || !teams.has(p['Fantasy Team ID']) || ['Player','Positions','Status'].some(k => p[k] !== undefined && typeof p[k] !== 'string'))) fail();
+  if (new Set(value.players.map(p => p['Player ID'])).size !== value.players.length || value.players.some(p => typeof p['Player ID'] !== 'string' || !p['Player ID'] || !teams.has(p['Fantasy Team ID']) || ['Player','Positions','Status','MLB Team'].some(k => p[k] !== undefined && p[k] !== null && typeof p[k] !== 'string'))) fail();
   if (value.teams.some(t => !value.players.some(p => p['Fantasy Team ID'] === t['Team ID']))) fail();
-  return {schema_version:1, league_id:value.league_id, generated_at:value.generated_at,
-    source:'Fantrax REST API · Airtable verified names',
+
+  return {
+    schema_version:1,
+    league_id:value.league_id,
+    generated_at:value.generated_at,
+    source:typeof value.source === 'string' ? value.source : 'Fantrax REST API',
     teams:value.teams.map(t => ({Team:t.Team,'Team ID':t['Team ID'],Record:t.Record,Points:t.Points})),
-    players:value.players.map(p => ({'Player ID':p['Player ID'],'Fantasy Team ID':p['Fantasy Team ID'],Player:p.Player,Positions:p.Positions,Status:p.Status})),
-    unavailable:['matchup_scores','starts_used','injury_details','free_agents','pitcher_ratings']};
+    players:value.players.map(p => ({'Player ID':p['Player ID'],'Fantasy Team ID':p['Fantasy Team ID'],Player:p.Player,'MLB Team':p['MLB Team'],Positions:p.Positions,Status:p.Status})),
+    pool:cleanPool(value.pool),
+    transactions:Array.isArray(value.transactions) ? value.transactions.map(t => ({...t})) : null,
+    weekly_schedule:cleanWeeklySchedule(value.weekly_schedule),
+    unavailable:Array.isArray(value.unavailable) ? [...value.unavailable] : [],
+  };
 }
