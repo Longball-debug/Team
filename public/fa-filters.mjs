@@ -1,3 +1,4 @@
+import './player-lab.mjs';
 import {SNAPSHOT_URL, validateSnapshot} from './snapshot-contract.mjs';
 
 let data = null;
@@ -59,15 +60,7 @@ function ensureStatColumns() {
   const table = body?.closest('table');
   const row = table?.querySelector('thead tr');
   if (!row) return;
-
-  // Always rebuild the header so repeated loads can never accumulate columns.
-  row.replaceChildren();
-  for (const label of ['Player','MLB','Positions','Availability','14D Points','14D PPG']) {
-    const th = document.createElement('th');
-    th.textContent = label;
-    row.append(th);
-  }
-
+  row.innerHTML = '<th>Player</th><th>MLB</th><th>Positions</th><th>Availability</th><th>14D Points</th><th>14D PPG</th>';
   const wrap = table.closest('.tablewrap');
   if (wrap && !document.getElementById('fa-14d-note')) {
     const note = document.createElement('div');
@@ -111,14 +104,7 @@ function render() {
   body.replaceChildren();
   for (const player of rows) {
     const tr = document.createElement('tr');
-    for (const value of [
-      player.name,
-      player.mlbTeam,
-      displayPositions(player.positions),
-      player.availability,
-      fmt(player.points14, 1),
-      fmt(player.ppg14, 2),
-    ]) {
+    for (const value of [player.name, player.mlbTeam, displayPositions(player.positions), player.availability, fmt(player.points14, 1), fmt(player.ppg14, 2)]) {
       const td = document.createElement('td');
       td.textContent = value || 'Unavailable';
       tr.append(td);
