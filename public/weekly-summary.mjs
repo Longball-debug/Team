@@ -1,3 +1,4 @@
+import './fa-filters.mjs';
 import {SNAPSHOT_URL, validateSnapshot} from './snapshot-contract.mjs';
 
 const TEAM_ALIASES = {
