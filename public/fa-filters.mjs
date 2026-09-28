@@ -31,6 +31,26 @@ function matchesPosition(player, wanted) {
   return positions.includes(wanted);
 }
 
+function ensurePositionFilter() {
+  if (document.getElementById('fa-position')) return;
+  const type = document.getElementById('fa-type');
+  if (!type) return;
+  const select = document.createElement('select');
+  select.id = 'fa-position';
+  select.className = 'select';
+  select.setAttribute('aria-label', 'Free agent position');
+  for (const [value, label] of [
+    ['all','All positions'],['C','C'],['1B','1B'],['2B','2B'],['3B','3B'],['SS','SS'],['OF','OF'],['UT','UT only'],['SP','SP'],['RP','RP'],['P','P']
+  ]) {
+    const option = document.createElement('option');
+    option.value = value;
+    option.textContent = label;
+    select.append(option);
+  }
+  type.insertAdjacentElement('afterend', select);
+  select.addEventListener('change', render);
+}
+
 function render() {
   if (!data) return;
   const body = document.getElementById('fa-rows');
@@ -70,6 +90,7 @@ function render() {
 }
 
 async function load() {
+  ensurePositionFilter();
   try {
     const response = await fetch(`${SNAPSHOT_URL}?fa=${Date.now()}`, {cache:'no-store'});
     if (!response.ok) throw new Error(`HTTP ${response.status}`);
@@ -80,10 +101,8 @@ async function load() {
   }
 }
 
-for (const id of ['fa-search','fa-type','fa-position']) {
-  const el = document.getElementById(id);
-  if (el) el.addEventListener(id === 'fa-search' ? 'input' : 'change', render);
-}
-
+ensurePositionFilter();
+document.getElementById('fa-search')?.addEventListener('input', render);
+document.getElementById('fa-type')?.addEventListener('change', render);
 document.querySelectorAll('.reloadbtn').forEach(btn => btn.addEventListener('click', load));
 load();
