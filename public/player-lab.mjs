@@ -1,0 +1,175 @@
+import {SNAPSHOT_URL, validateSnapshot} from './snapshot-contract.mjs';
+
+let data = null;
+let selectedId = null;
+
+function normalizePositions(value) {
+  const vals = Array.isArray(value) ? value : String(value || '').split(/[\/,|]/);
+  let positions = vals.map(v => String(v).trim().toUpperCase()).filter(Boolean);
+  const hasHitter = positions.some(p => !['UT','P','SP','RP'].includes(p));
+  const hasPitcher = positions.some(p => ['SP','RP'].includes(p));
+  if (hasHitter) positions = positions.filter(p => p !== 'UT');
+  if (hasPitcher) positions = positions.filter(p => p !== 'P');
+  return positions.join('/') || 'Unavailable';
+}
+
+function fmt(value, digits=1) {
+  return Number.isFinite(value) ? Number(value).toFixed(digits) : '—';
+}
+
+function trend(player) {
+  if (!Number.isFinite(player.ppg7) || !Number.isFinite(player.ppg30) || player.games7 < 2) return {label:'Not enough data', tone:'gray'};
+  if (player.ppg30 === 0) return {label: player.ppg7 > 0 ? 'Rising' : 'Steady', tone: player.ppg7 > 0 ? 'green' : 'gray'};
+  const change = (player.ppg7 - player.ppg30) / Math.abs(player.ppg30);
+  if (change >= 0.15) return {label:'Rising', tone:'green'};
+  if (change <= -0.15) return {label:'Falling', tone:'red'};
+  return {label:'Steady', tone:'yellow'};
+}
+
+function ensureLayout() {
+  const lab = document.getElementById('lab');
+  const input = document.getElementById('lab-search');
+  const table = document.getElementById('lab-rows')?.closest('table');
+  if (!lab || !input || !table) return;
+
+  const header = table.querySelector('thead tr');
+  if (header) header.innerHTML = '<th>Player</th><th>MLB</th><th>Positions</th><th>Ownership</th><th>7D FP/G</th><th>14D FP/G</th><th>30D FP/G</th><th>Trend</th>';
+
+  if (!document.getElementById('lab-note')) {
+    const note = document.createElement('div');
+    note.id = 'lab-note';
+    note.className = 'note';
+    note.style.margin = '8px 0 14px';
+    input.insertAdjacentElement('afterend', note);
+  }
+
+  if (!document.getElementById('lab-detail')) {
+    const detail = document.createElement('div');
+    detail.id = 'lab-detail';
+    detail.className = 'section';
+    table.closest('.tablewrap')?.insertAdjacentElement('afterend', detail);
+  }
+}
+
+function metric(label, value, detail='') {
+  return `<div class="metric"><div class="label">${label}</div><div class="value">${value}</div>${detail ? `<div class="subtle">${detail}</div>` : ''}</div>`;
+}
+
+function renderDetail(player) {
+  const host = document.getElementById('lab-detail');
+  if (!host) return;
+  if (!player) {
+    host.innerHTML = '<h2>Scouting Card</h2><div class="empty">Search for a player to open the scouting card.</div>';
+    return;
+  }
+  const t = trend(player);
+  const sm = player.seasonMetrics || {};
+  const pitcher = sm.type === 'pitcher';
+  const ownership = player.teamName || player.availability || 'Unavailable';
+  let seasonCards = '';
+  if (pitcher) {
+    seasonCards = [
+      metric('ERA', fmt(sm.era, 2), `${sm.ip ?? '—'} IP`),
+      metric('WHIP', fmt(sm.whip, 2)),
+      metric('K-BB%', fmt(sm.k_bb_pct, 1), `${sm.k ?? '—'} K · ${sm.bb ?? '—'} BB`),
+      metric('Starts', Number.isFinite(sm.starts) ? String(sm.starts) : '—', `${sm.games ?? '—'} appearances`),
+    ].join('');
+  } else {
+    seasonCards = [
+      metric('OPS', fmt(sm.ops, 3), `${sm.pa ?? '—'} PA`),
+      metric('ISO', fmt(sm.iso, 3)),
+      metric('K%', fmt(sm.k_pct, 1)),
+      metric('BB%', fmt(sm.bb_pct, 1)),
+    ].join('');
+  }
+
+  host.innerHTML = `
+    <h2>${player.name} — Scouting Card</h2>
+    <div class="warning">${player.mlbTeam || '—'} · ${normalizePositions(player.positions)} · ${ownership}</div>
+    <div class="summary">
+      ${metric('7D FP/G', fmt(player.ppg7, 2), `${fmt(player.points7,1)} total · ${player.games7 ?? '—'} games`)}
+      ${metric('14D FP/G', fmt(player.ppg14, 2), `${fmt(player.points14,1)} total · ${player.games14 ?? '—'} games`)}
+      ${metric('30D FP/G', fmt(player.ppg30, 2), `${fmt(player.points30,1)} total · ${player.games30 ?? '—'} games`)}
+      ${metric('Trend', t.label, '7-day pace vs 30-day pace')}
+    </div>
+    <h2>Season Performance</h2>
+    <div class="summary">${seasonCards || metric('Season metrics','Unavailable')}</div>
+    <div class="note">Verified MLB/FantasyGM metrics only. Statcast quality-of-contact and FanGraphs advanced metrics will be added as separate verified feeds; they are not inferred here.</div>`;
+}
+
+function render() {
+  ensureLayout();
+  if (!data) return;
+  const q = String(document.getElementById('lab-search')?.value || '').trim().toLowerCase();
+  const body = document.getElementById('lab-rows');
+  if (!body) return;
+
+  const matches = (data.pool || []).filter(p => {
+    if (!q) return false;
+    return [p.name,p.mlbTeam,normalizePositions(p.positions),p.teamName,p.availability].join(' ').toLowerCase().includes(q);
+  }).sort((a,b) => {
+    const aq = String(a.name || '').toLowerCase().startsWith(q) ? 0 : 1;
+    const bq = String(b.name || '').toLowerCase().startsWith(q) ? 0 : 1;
+    return aq - bq || String(a.name || '').localeCompare(String(b.name || ''));
+  }).slice(0,50);
+
+  body.replaceChildren();
+  for (const p of matches) {
+    const tr = document.createElement('tr');
+    tr.style.cursor = 'pointer';
+    tr.dataset.playerId = p.fantraxId || '';
+    const t = trend(p);
+    const values = [p.name,p.mlbTeam,normalizePositions(p.positions),p.teamName || p.availability || 'Unavailable',fmt(p.ppg7,2),fmt(p.ppg14,2),fmt(p.ppg30,2),t.label];
+    for (const value of values) {
+      const td = document.createElement('td');
+      td.textContent = value || 'Unavailable';
+      tr.append(td);
+    }
+    tr.addEventListener('click', () => {
+      selectedId = p.fantraxId;
+      renderDetail(p);
+    });
+    body.append(tr);
+  }
+
+  if (!matches.length) {
+    const tr = document.createElement('tr');
+    const td = document.createElement('td');
+    td.colSpan = 8;
+    td.className = 'empty';
+    td.textContent = q ? 'No verified matching players.' : 'Type a player name, MLB team or position.';
+    tr.append(td);
+    body.append(tr);
+    renderDetail(null);
+  } else {
+    const selected = matches.find(p => p.fantraxId === selectedId) || matches[0];
+    selectedId = selected.fantraxId;
+    renderDetail(selected);
+  }
+
+  const note = document.getElementById('lab-note');
+  if (note) {
+    const meta = data.player_lab;
+    note.textContent = meta?.recent_end_date
+      ? `Recent form uses completed MLB games through ${meta.recent_end_date}. Click a result for the full scouting card.`
+      : 'Recent-form data is not verified in the current snapshot.';
+  }
+}
+
+async function load() {
+  ensureLayout();
+  try {
+    const response = await fetch(`${SNAPSHOT_URL}?lab=${Date.now()}`, {cache:'no-store'});
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    data = validateSnapshot(await response.json());
+    render();
+  } catch {
+    data = null;
+    renderDetail(null);
+  }
+}
+
+ensureLayout();
+document.getElementById('lab-search')?.addEventListener('input', render);
+document.querySelectorAll('.reloadbtn').forEach(btn => btn.addEventListener('click', load));
+load();
