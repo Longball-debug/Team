@@ -13,11 +13,11 @@ from zoneinfo import ZoneInfo
 
 BASE = "https://statsapi.mlb.com/api/v1"
 
-# LONGBALL 2026 scoring, matching the current Fantrax league feeding this site.
+# FantasyGM2027 / LONGBALL 2027 working scoring.
 HIT = {
-    "1B": 1.5, "2B": 3.0, "3B": 3.0, "HR": 4.0, "RBI": 2.0,
-    "R": 1.0, "SB": 3.0, "BB": 1.0, "SO": -1.0, "HBP": 1.0,
-    "SF": 1.0, "SH": 1.0, "GIDP": -2.0, "CS": -1.0,
+    "1B": 1.5, "2B": 3.0, "3B": 3.0, "HR": 5.0, "RBI": 2.0,
+    "R": 1.0, "SB": 3.0, "BB": 1.0, "SO": -0.5, "HBP": 1.0,
+    "SF": 1.0, "SH": 1.0, "GIDP": -2.0, "CS": -2.0,
 }
 PIT = {
     "IP": 2.0, "K": 1.5, "ER": -2.0, "H": -0.5, "BB": -0.5,
@@ -164,7 +164,7 @@ def main() -> None:
             p["ppg14"] = None
 
     data["recent_14d"] = {
-        "source": "MLB Stats API · Longball 2026 scoring",
+        "source": "MLB Stats API · FantasyGM2027 scoring",
         "start_date": start_s,
         "end_date": end_s,
         "matched_pool_players": matched,
