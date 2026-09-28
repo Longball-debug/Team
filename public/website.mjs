@@ -262,6 +262,39 @@ function renderDailyTrends(hitters) {
   }
 }
 
+function gameCell(game) {
+  const td = document.createElement('td');
+  td.className = 'gamecell';
+  if (!game) {
+    td.textContent = 'Not verified';
+    return td;
+  }
+  const top = document.createElement('strong');
+  const date = game.date ? new Date(`${game.date}T12:00:00`).toLocaleDateString([], {month:'numeric', day:'numeric'}) : 'Date ?';
+  top.textContent = `${date} · ${game.opponent || '?'} · ${Number(game.fantasy_points).toFixed(1)} FP`;
+  const detail = document.createElement('small');
+  detail.textContent = `${game.innings_pitched ?? '?'} IP · ${game.strikeouts ?? '?'} K · ${game.earned_runs ?? '?'} ER · ${game.hits ?? '?'} H · ${game.walks ?? '?'} BB`;
+  td.append(top, detail);
+  return td;
+}
+
+function renderPitcherRecentGames(pitchers, recent) {
+  const body = document.getElementById('daily-pitcher-games');
+  if (!body) return;
+  body.replaceChildren();
+  const map = recent?.players || {};
+  for (const pitcher of pitchers) {
+    const item = map[pitcher.Player];
+    const games = Array.isArray(item?.games) ? item.games.slice(0, 3) : [];
+    const tr = document.createElement('tr');
+    tr.append(cell(pitcher.Player));
+    tr.append(gameCell(games[0]));
+    tr.append(gameCell(games[1]));
+    tr.append(gameCell(games[2]));
+    body.append(tr);
+  }
+}
+
 function renderCore(data) {
   const roster = rosterRecords(data);
   const hitters = roster.filter(p => !p.pitcher);
@@ -270,7 +303,7 @@ function renderCore(data) {
   renderDailyActions();
   renderDailyMatchups(hitters, data.weekly_schedule);
   renderDailyTrends(hitters);
-  replaceRows('daily-pitchers', pitchers, ['Player','MLB','Positions','Status']);
+  renderPitcherRecentGames(pitchers, data.pitcher_recent_games);
 
   updateWeeklyHeaders(data.weekly_schedule);
   renderWeeklyTable('weekly-hitters', hitters, data.weekly_schedule, 'hitter');
@@ -334,7 +367,7 @@ async function refresh() {
   } catch {
     snapshot = null;
     setStatus('Current data unavailable: the latest complete refresh could not be verified.');
-    ['daily-matchups','daily-trends','daily-pitchers','weekly-hitters','weekly-pitchers','fa-rows','lab-rows'].forEach(id => {
+    ['daily-matchups','daily-trends','daily-pitcher-games','weekly-hitters','weekly-pitchers','fa-rows','lab-rows'].forEach(id => {
       const body = document.getElementById(id);
       if (body) body.replaceChildren();
     });
