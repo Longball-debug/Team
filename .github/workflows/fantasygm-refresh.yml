@@ -12,6 +12,7 @@ on:
       - 'add_weekly_schedule.py'
       - 'mlb_pitcher_logs.py'
       - 'add_pitcher_logs.py'
+      - 'add_recent_14d_stats.py'
       - 'wrangler.jsonc'
       - 'index.html'
       - 'public/website.mjs'
@@ -67,6 +68,9 @@ jobs:
 
       - name: Attach verified pitcher last-three game logs
         run: python add_pitcher_logs.py --snapshot public/fantasygm.json
+
+      - name: Attach verified 14-day fantasy scoring
+        run: python add_recent_14d_stats.py --snapshot public/fantasygm.json
 
       - name: Prepare Cloudflare static site
         run: |
