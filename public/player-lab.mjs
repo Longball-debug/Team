@@ -113,6 +113,35 @@ function positionRank(player) {
   return {rank:index + 1, total:peers.length};
 }
 
+function rankBand(rank) {
+  if (!rank || !rank.total) return {label:'Unranked', detail:'14D FP/G peer rank unavailable'};
+  const share = rank.rank / rank.total;
+  if (share <= 0.10) return {label:'Top 10%', detail:`${rank.rank} of ${rank.total} eligible peers`};
+  if (share <= 0.25) return {label:'Top 25%', detail:`${rank.rank} of ${rank.total} eligible peers`};
+  if (share <= 0.50) return {label:'Top 50%', detail:`${rank.rank} of ${rank.total} eligible peers`};
+  return {label:'Lower half', detail:`${rank.rank} of ${rank.total} eligible peers`};
+}
+
+function volumeSignal(sched) {
+  if (!sched) return {label:'Unavailable', detail:'Verified weekly schedule missing'};
+  if (sched.games >= 7) return {label:'Heavy slate', detail:`${sched.games} games this week`};
+  if (sched.games === 6) return {label:'Normal slate', detail:'6 games this week'};
+  return {label:'Light slate', detail:`${sched.games} games this week`};
+}
+
+function profileSignal(sm) {
+  if (sm?.type === 'pitcher') {
+    if (!Number.isFinite(sm.k_bb_pct)) return {label:'Unavailable', detail:'K-BB% not verified'};
+    if (sm.k_bb_pct >= 18) return {label:'Strong K-BB profile', detail:`${fmt(sm.k_bb_pct,1)}% K-BB`};
+    if (sm.k_bb_pct <= 10) return {label:'Low K-BB profile', detail:`${fmt(sm.k_bb_pct,1)}% K-BB`};
+    return {label:'Middle K-BB profile', detail:`${fmt(sm.k_bb_pct,1)}% K-BB`};
+  }
+  if (!Number.isFinite(sm?.k_pct) || !Number.isFinite(sm?.bb_pct)) return {label:'Unavailable', detail:'K% / BB% not verified'};
+  if (sm.k_pct <= 20 && sm.bb_pct >= 8) return {label:'Strong discipline', detail:`${fmt(sm.k_pct,1)}% K · ${fmt(sm.bb_pct,1)}% BB`};
+  if (sm.k_pct >= 28) return {label:'High K rate', detail:`${fmt(sm.k_pct,1)}% K · ${fmt(sm.bb_pct,1)}% BB`};
+  return {label:'Middle discipline', detail:`${fmt(sm.k_pct,1)}% K · ${fmt(sm.bb_pct,1)}% BB`};
+}
+
 function renderDetail(player) {
   const host = document.getElementById('lab-detail');
   if (!host) return;
@@ -126,6 +155,9 @@ function renderDetail(player) {
   const ownership = player.teamName || player.availability || 'Unavailable';
   const sched = scheduleContext(player);
   const rank = positionRank(player);
+  const rankSignal = rankBand(rank);
+  const volume = volumeSignal(sched);
+  const profile = profileSignal(sm);
   let seasonCards = '';
   if (pitcher) {
     seasonCards = [
@@ -143,6 +175,13 @@ function renderDetail(player) {
     ].join('');
   }
 
+  const signalCards = [
+    metric('Recent Form', t.label, '7-day FP/G vs 30-day FP/G'),
+    metric('Position Standing', rankSignal.label, rankSignal.detail),
+    metric('Weekly Volume', volume.label, volume.detail),
+    metric('Skill Profile', profile.label, profile.detail),
+  ].join('');
+
   const contextCards = [
     metric('14D Pos Rank', rank ? `${rank.rank}/${rank.total}` : '—', 'FP/G among players sharing eligibility'),
     metric('Week Games', sched ? String(sched.games) : '—', sched ? `${sched.home} home · ${sched.road} road` : 'Schedule unavailable'),
@@ -159,11 +198,13 @@ function renderDetail(player) {
       ${metric('30D FP/G', fmt(player.ppg30, 2), `${fmt(player.points30,1)} total · ${player.games30 ?? '—'} games`)}
       ${metric('Trend', t.label, '7-day pace vs 30-day pace')}
     </div>
+    <h2>Decision Signals</h2>
+    <div class="summary">${signalCards}</div>
     <h2>Fantasy Context</h2>
     <div class="summary">${contextCards}</div>
     <h2>Season Performance</h2>
     <div class="summary">${seasonCards || metric('Season metrics','Unavailable')}</div>
-    <div class="note">Verified MLB/FantasyGM metrics only. Statcast quality-of-contact and FanGraphs advanced metrics will be added as separate verified feeds; they are not inferred here.</div>`;
+    <div class="note">Decision Signals are deterministic labels from the verified values shown above, not external expert rankings. Statcast and FanGraphs metrics remain separate future feeds.</div>`;
 }
 
 function render() {
