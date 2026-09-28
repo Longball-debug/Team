@@ -15,6 +15,7 @@ on:
       - 'wrangler.jsonc'
       - 'index.html'
       - 'public/website.mjs'
+      - 'public/pitcher-today.mjs'
       - 'public/snapshot-contract.mjs'
   schedule:
   - cron: '45 5 * * *'
@@ -71,6 +72,7 @@ jobs:
           mkdir -p dist/public
           cp index.html dist/index.html
           cp public/website.mjs dist/public/website.mjs
+          cp public/pitcher-today.mjs dist/public/pitcher-today.mjs
           cp public/snapshot-contract.mjs dist/public/snapshot-contract.mjs
           cp public/fantasygm.json dist/public/fantasygm.json
 
