@@ -17,6 +17,7 @@ on:
       - 'public/website.mjs'
       - 'public/pitcher-today.mjs'
       - 'public/weekly-summary.mjs'
+      - 'public/fa-filters.mjs'
       - 'public/snapshot-contract.mjs'
   schedule:
   - cron: '45 5 * * *'
@@ -75,6 +76,7 @@ jobs:
           cp public/website.mjs dist/public/website.mjs
           cp public/pitcher-today.mjs dist/public/pitcher-today.mjs
           cp public/weekly-summary.mjs dist/public/weekly-summary.mjs
+          cp public/fa-filters.mjs dist/public/fa-filters.mjs
           cp public/snapshot-contract.mjs dist/public/snapshot-contract.mjs
           cp public/fantasygm.json dist/public/fantasygm.json
 
