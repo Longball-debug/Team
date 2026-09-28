@@ -13,12 +13,14 @@ on:
       - 'mlb_pitcher_logs.py'
       - 'add_pitcher_logs.py'
       - 'add_recent_14d_stats.py'
+      - 'add_player_lab_stats.py'
       - 'wrangler.jsonc'
       - 'index.html'
       - 'public/website.mjs'
       - 'public/pitcher-today.mjs'
       - 'public/weekly-summary.mjs'
       - 'public/fa-filters.mjs'
+      - 'public/player-lab.mjs'
       - 'public/snapshot-contract.mjs'
   schedule:
   - cron: '45 5 * * *'
@@ -72,6 +74,9 @@ jobs:
       - name: Attach verified 14-day fantasy scoring
         run: python add_recent_14d_stats.py --snapshot public/fantasygm.json
 
+      - name: Attach verified Player Lab metrics
+        run: python add_player_lab_stats.py --snapshot public/fantasygm.json
+
       - name: Prepare Cloudflare static site
         run: |
           rm -rf dist
@@ -81,6 +86,7 @@ jobs:
           cp public/pitcher-today.mjs dist/public/pitcher-today.mjs
           cp public/weekly-summary.mjs dist/public/weekly-summary.mjs
           cp public/fa-filters.mjs dist/public/fa-filters.mjs
+          cp public/player-lab.mjs dist/public/player-lab.mjs
           cp public/snapshot-contract.mjs dist/public/snapshot-contract.mjs
           cp public/fantasygm.json dist/public/fantasygm.json
 
