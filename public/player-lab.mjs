@@ -3,14 +3,29 @@ import {SNAPSHOT_URL, validateSnapshot} from './snapshot-contract.mjs';
 let data = null;
 let selectedId = null;
 
-function normalizePositions(value) {
+const TEAM_ALIASES = {
+  AZ:'ARI', ARI:'ARI', CWS:'CHW', CHW:'CHW', KC:'KCR', KCR:'KCR',
+  SD:'SDP', SDP:'SDP', SF:'SFG', SFG:'SFG', TB:'TBR', TBR:'TBR',
+  WSH:'WSN', WSN:'WSN', OAK:'ATH', ATH:'ATH'
+};
+
+function normalizePositionList(value) {
   const vals = Array.isArray(value) ? value : String(value || '').split(/[\/,|]/);
   let positions = vals.map(v => String(v).trim().toUpperCase()).filter(Boolean);
   const hasHitter = positions.some(p => !['UT','P','SP','RP'].includes(p));
   const hasPitcher = positions.some(p => ['SP','RP'].includes(p));
   if (hasHitter) positions = positions.filter(p => p !== 'UT');
   if (hasPitcher) positions = positions.filter(p => p !== 'P');
+  return positions;
+}
+
+function normalizePositions(value) {
+  const positions = normalizePositionList(value);
   return positions.join('/') || 'Unavailable';
+}
+
+function isPitcher(player) {
+  return normalizePositionList(player.positions).some(p => ['P','SP','RP'].includes(p));
 }
 
 function fmt(value, digits=1) {
@@ -55,6 +70,49 @@ function metric(label, value, detail='') {
   return `<div class="metric"><div class="label">${label}</div><div class="value">${value}</div>${detail ? `<div class="subtle">${detail}</div>` : ''}</div>`;
 }
 
+function scheduleTeamKey(team, schedule) {
+  const raw = String(team || '').trim().toUpperCase();
+  if (schedule?.teams?.[raw]) return raw;
+  const alias = TEAM_ALIASES[raw];
+  return alias && schedule?.teams?.[alias] ? alias : null;
+}
+
+function scheduleContext(player) {
+  const schedule = data?.weekly_schedule;
+  const key = scheduleTeamKey(player.mlbTeam, schedule);
+  const days = Array.isArray(schedule?.days) ? schedule.days : [];
+  if (!key || days.length !== 7) return null;
+  let games = 0;
+  let home = 0;
+  let road = 0;
+  let probable = 0;
+  const opponents = [];
+  for (const day of days) {
+    const list = Array.isArray(schedule.teams?.[key]?.[day]) ? schedule.teams[key][day] : [];
+    games += list.length;
+    for (const g of list) {
+      if (g.home_away === 'home') home += 1; else if (g.home_away === 'away') road += 1;
+      if (g.opponent_probable_pitcher) probable += 1;
+      if (g.opponent) opponents.push(g.opponent);
+    }
+  }
+  return {games, home, road, probable, opponents:[...new Set(opponents)]};
+}
+
+function positionRank(player) {
+  const positions = normalizePositionList(player.positions);
+  const pitcher = isPitcher(player);
+  const peers = (data?.pool || []).filter(p => {
+    if (isPitcher(p) !== pitcher || !Number.isFinite(p.ppg14)) return false;
+    const pp = normalizePositionList(p.positions);
+    if (!positions.length || !pp.length) return false;
+    return positions.some(pos => pp.includes(pos));
+  }).sort((a,b) => (b.ppg14 ?? -Infinity) - (a.ppg14 ?? -Infinity));
+  const index = peers.findIndex(p => p.fantraxId === player.fantraxId);
+  if (index < 0) return null;
+  return {rank:index + 1, total:peers.length};
+}
+
 function renderDetail(player) {
   const host = document.getElementById('lab-detail');
   if (!host) return;
@@ -66,6 +124,8 @@ function renderDetail(player) {
   const sm = player.seasonMetrics || {};
   const pitcher = sm.type === 'pitcher';
   const ownership = player.teamName || player.availability || 'Unavailable';
+  const sched = scheduleContext(player);
+  const rank = positionRank(player);
   let seasonCards = '';
   if (pitcher) {
     seasonCards = [
@@ -83,6 +143,13 @@ function renderDetail(player) {
     ].join('');
   }
 
+  const contextCards = [
+    metric('14D Pos Rank', rank ? `${rank.rank}/${rank.total}` : '—', 'FP/G among players sharing eligibility'),
+    metric('Week Games', sched ? String(sched.games) : '—', sched ? `${sched.home} home · ${sched.road} road` : 'Schedule unavailable'),
+    metric('Probable SPs', sched ? `${sched.probable}/${sched.games}` : '—', pitcher ? 'Opponent probable-starter coverage' : 'Named opposing starters'),
+    metric('Opponents', sched?.opponents?.length ? sched.opponents.join(', ') : '—'),
+  ].join('');
+
   host.innerHTML = `
     <h2>${player.name} — Scouting Card</h2>
     <div class="warning">${player.mlbTeam || '—'} · ${normalizePositions(player.positions)} · ${ownership}</div>
@@ -92,6 +159,8 @@ function renderDetail(player) {
       ${metric('30D FP/G', fmt(player.ppg30, 2), `${fmt(player.points30,1)} total · ${player.games30 ?? '—'} games`)}
       ${metric('Trend', t.label, '7-day pace vs 30-day pace')}
     </div>
+    <h2>Fantasy Context</h2>
+    <div class="summary">${contextCards}</div>
     <h2>Season Performance</h2>
     <div class="summary">${seasonCards || metric('Season metrics','Unavailable')}</div>
     <div class="note">Verified MLB/FantasyGM metrics only. Statcast quality-of-contact and FanGraphs advanced metrics will be added as separate verified feeds; they are not inferred here.</div>`;
