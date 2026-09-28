@@ -10,7 +10,10 @@ function normalizePositions(value) {
 
 function displayPositions(value) {
   let positions = normalizePositions(value);
-  if (positions.length > 1) positions = positions.filter(p => p !== 'UT');
+  const hasSpecificHitter = positions.some(p => !['UT','P','SP','RP'].includes(p));
+  const hasSpecificPitcher = positions.some(p => ['SP','RP'].includes(p));
+  if (hasSpecificHitter) positions = positions.filter(p => p !== 'UT');
+  if (hasSpecificPitcher) positions = positions.filter(p => p !== 'P');
   return positions.length ? positions.join('/') : 'Unavailable';
 }
 
@@ -40,7 +43,7 @@ function ensurePositionFilter() {
   select.className = 'select';
   select.setAttribute('aria-label', 'Free agent position');
   for (const [value, label] of [
-    ['all','All positions'],['C','C'],['1B','1B'],['2B','2B'],['3B','3B'],['SS','SS'],['OF','OF'],['UT','UT only'],['SP','SP'],['RP','RP'],['P','P']
+    ['all','All positions'],['C','C'],['1B','1B'],['2B','2B'],['3B','3B'],['SS','SS'],['OF','OF'],['UT','UT only'],['SP','SP'],['RP','RP']
   ]) {
     const option = document.createElement('option');
     option.value = value;
