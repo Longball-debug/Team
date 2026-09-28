@@ -58,10 +58,10 @@ function ensureStatColumns() {
   const body = document.getElementById('fa-rows');
   const table = body?.closest('table');
   const row = table?.querySelector('thead tr');
-  if (!row || row.querySelector('[data-fa-14d]')) return;
+  if (!row || row.querySelector('[data-fa-14d="1"]')) return;
   for (const label of ['14D Points','14D PPG']) {
     const th = document.createElement('th');
-    th.dataset.fa14d = '1';
+    th.setAttribute('data-fa-14d', '1');
     th.textContent = label;
     row.append(th);
   }
