@@ -58,13 +58,16 @@ function ensureStatColumns() {
   const body = document.getElementById('fa-rows');
   const table = body?.closest('table');
   const row = table?.querySelector('thead tr');
-  if (!row || row.querySelector('[data-fa-14d="1"]')) return;
-  for (const label of ['14D Points','14D PPG']) {
+  if (!row) return;
+
+  // Always rebuild the header so repeated loads can never accumulate columns.
+  row.replaceChildren();
+  for (const label of ['Player','MLB','Positions','Availability','14D Points','14D PPG']) {
     const th = document.createElement('th');
-    th.setAttribute('data-fa-14d', '1');
     th.textContent = label;
     row.append(th);
   }
+
   const wrap = table.closest('.tablewrap');
   if (wrap && !document.getElementById('fa-14d-note')) {
     const note = document.createElement('div');
