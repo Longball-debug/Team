@@ -11,6 +11,9 @@ function cleanPool(pool) {
     teamId:p.teamId,
     teamName:p.teamName,
     sourceStatus:p.sourceStatus,
+    points14:Number.isFinite(p.points14) ? p.points14 : null,
+    games14:Number.isFinite(p.games14) ? p.games14 : null,
+    ppg14:Number.isFinite(p.ppg14) ? p.ppg14 : null,
   }));
 }
 
@@ -71,6 +74,16 @@ function cleanPitcherRecentGames(value) {
   return {source:value.source, season:value.season, players};
 }
 
+function cleanRecent14(value) {
+  if (!value || typeof value !== 'object') return null;
+  return {
+    source:typeof value.source === 'string' ? value.source : null,
+    start_date:typeof value.start_date === 'string' ? value.start_date : null,
+    end_date:typeof value.end_date === 'string' ? value.end_date : null,
+    matched_pool_players:Number.isFinite(value.matched_pool_players) ? value.matched_pool_players : null,
+  };
+}
+
 export function validateSnapshot(value, now = Date.now()) {
   const fail = () => { throw new Error('The latest complete Fantrax refresh is unavailable or overdue.'); };
   if (!value || value.schema_version !== 1 || value.league_id !== 'gxq8uqpqmg5m5edj') fail();
@@ -94,6 +107,7 @@ export function validateSnapshot(value, now = Date.now()) {
     transactions:Array.isArray(value.transactions) ? value.transactions.map(t => ({...t})) : null,
     weekly_schedule:cleanWeeklySchedule(value.weekly_schedule),
     pitcher_recent_games:cleanPitcherRecentGames(value.pitcher_recent_games),
+    recent_14d:cleanRecent14(value.recent_14d),
     unavailable:Array.isArray(value.unavailable) ? [...value.unavailable] : [],
   };
 }
