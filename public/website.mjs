@@ -180,13 +180,9 @@ function renderWeeklyTable(id, records, schedule, kind) {
     for (const day of days) {
       const td = document.createElement('td');
       const games = teamKey && Array.isArray(schedule.teams?.[teamKey]?.[day]) ? schedule.teams[teamKey][day] : [];
-      if (kind === 'hitter') {
-        td.append(matchupBlock(games, {includeProbable:true}));
-      } else if (isStarter(record)) {
-        td.append(matchupBlock(games, {starterName:record.Player}));
-      } else if (isReliever(record) || record.pitcher) {
-        td.append(matchupBlock(games));
-      }
+      if (kind === 'hitter') td.append(matchupBlock(games, {includeProbable:true}));
+      else if (isStarter(record)) td.append(matchupBlock(games, {starterName:record.Player}));
+      else if (isReliever(record) || record.pitcher) td.append(matchupBlock(games));
       tr.append(td);
     }
     body.append(tr);
@@ -203,15 +199,83 @@ function updateWeeklyHeaders(schedule) {
   });
 }
 
+function phoenixDateString() {
+  const parts = new Intl.DateTimeFormat('en-CA', {timeZone:'America/Phoenix', year:'numeric', month:'2-digit', day:'2-digit'}).formatToParts(new Date());
+  const map = Object.fromEntries(parts.map(p => [p.type, p.value]));
+  return `${map.year}-${map.month}-${map.day}`;
+}
+
+function todayGames(record, schedule) {
+  const day = phoenixDateString();
+  const key = scheduleTeamKey(record.MLB, schedule);
+  return key && Array.isArray(schedule?.teams?.[key]?.[day]) ? schedule.teams[key][day] : [];
+}
+
+function appendRatingCell(tr, label='Not rated', tone='gray') {
+  const td = document.createElement('td');
+  const span = document.createElement('span');
+  span.className = `rating ${tone}`;
+  span.textContent = label;
+  td.append(span);
+  tr.append(td);
+}
+
+function renderDailyActions() {
+  const host = document.getElementById('daily-actions');
+  if (!host) return;
+  host.replaceChildren();
+  const card = document.createElement('div');
+  card.className = 'actioncard';
+  card.innerHTML = '<strong>No verified action calls yet</strong><span class="subtle">Opponent data is live. Action calls will return when matchup ratings and recent-form feeds are reconnected.</span>';
+  host.append(card);
+}
+
+function renderDailyMatchups(hitters, schedule) {
+  const body = document.getElementById('daily-matchups');
+  if (!body) return;
+  body.replaceChildren();
+  for (const player of hitters) {
+    const games = todayGames(player, schedule);
+    const tr = document.createElement('tr');
+    tr.append(cell(player.Player));
+    tr.append(cell(games.length ? games.map(g => `${g.home_away === 'away' ? '@' : 'vs '}${g.opponent}`).join(' / ') : 'Off day'));
+    tr.append(cell(games.length ? games.map(g => g.opponent_probable_pitcher || 'Not verified').join(' / ') : '—'));
+    tr.append(cell(games.length ? 'Not verified' : '—'));
+    appendRatingCell(tr, games.length ? 'Not rated' : '—', 'gray');
+    tr.append(cell('Not verified'));
+    body.append(tr);
+  }
+}
+
+function renderDailyTrends(hitters) {
+  const body = document.getElementById('daily-trends');
+  if (!body) return;
+  body.replaceChildren();
+  for (const player of hitters) {
+    const tr = document.createElement('tr');
+    tr.append(cell(player.Player));
+    tr.append(cell('Not verified'));
+    tr.append(cell('Not verified'));
+    tr.append(cell('Not verified'));
+    tr.append(cell('Not verified'));
+    body.append(tr);
+  }
+}
+
 function renderCore(data) {
   const roster = rosterRecords(data);
   const hitters = roster.filter(p => !p.pitcher);
   const pitchers = roster.filter(p => p.pitcher);
-  replaceRows('daily-hitters', hitters, ['Player','MLB','Positions','Status']);
+
+  renderDailyActions();
+  renderDailyMatchups(hitters, data.weekly_schedule);
+  renderDailyTrends(hitters);
   replaceRows('daily-pitchers', pitchers, ['Player','MLB','Positions','Status']);
+
   updateWeeklyHeaders(data.weekly_schedule);
   renderWeeklyTable('weekly-hitters', hitters, data.weekly_schedule, 'hitter');
   renderWeeklyTable('weekly-pitchers', pitchers, data.weekly_schedule, 'pitcher');
+
   const note = document.getElementById('weekly-note');
   if (note) {
     note.textContent = data.weekly_schedule
@@ -270,7 +334,7 @@ async function refresh() {
   } catch {
     snapshot = null;
     setStatus('Current data unavailable: the latest complete refresh could not be verified.');
-    ['daily-hitters','daily-pitchers','weekly-hitters','weekly-pitchers','fa-rows','lab-rows'].forEach(id => {
+    ['daily-matchups','daily-trends','daily-pitchers','weekly-hitters','weekly-pitchers','fa-rows','lab-rows'].forEach(id => {
       const body = document.getElementById(id);
       if (body) body.replaceChildren();
     });
