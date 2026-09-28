@@ -1,4 +1,3 @@
-import './fa-filters.mjs';
 import {SNAPSHOT_URL, validateSnapshot} from './snapshot-contract.mjs';
 
 const TEAM_ALIASES = {
@@ -66,8 +65,13 @@ function ensureWeeklySummary() {
 
   const opp = document.createElement('div');
   opp.className = 'section';
-  opp.innerHTML = '<h2>Opponent Week Snapshot</h2><div class="tablewrap"><table><thead><tr><th>Day</th><th>Roster Games</th><th>MLB Opponents Faced</th><th>Probable Opposing SPs</th><th>Our Projected SP Starts</th></tr></thead><tbody id="weekly-opponent-snapshot"></tbody></table></div><div class="note" style="margin-top:8px">This is the verified MLB opponent slate for Desert Rats players. Fantasy matchup-opponent roster/start totals will be added when that Fantrax matchup feed is available.</div>';
+  opp.innerHTML = '<h2>Opponent Week Snapshot</h2><div class="tablewrap"><table><thead><tr><th>Day</th><th>Hitter Games</th><th>MLB Opponents Faced</th><th>Probable Opposing SPs</th><th>Our Projected SP Starts</th></tr></thead><tbody id="weekly-opponent-snapshot"></tbody></table></div>';
   glance.insertAdjacentElement('afterend', opp);
+
+  const teams = document.createElement('div');
+  teams.className = 'section';
+  teams.innerHTML = '<h2>Roster Schedule by MLB Team</h2><div class="tablewrap"><table><thead><tr><th>MLB Team</th><th>Desert Rats Hitters</th><th>Games</th><th>Opponents</th><th>Home / Road</th><th>Probable SP Coverage</th></tr></thead><tbody id="weekly-team-snapshot"></tbody></table></div><div class="note" style="margin-top:8px">Opponent quality is not color-graded until a verified strength source is connected. This section shows the verified schedule only.</div>';
+  opp.insertAdjacentElement('afterend', teams);
 }
 
 function renderDayRow(body, day, hitters, starters, schedule) {
@@ -101,13 +105,59 @@ function renderDayRow(body, day, hitters, starters, schedule) {
   body.append(tr);
 }
 
+function renderTeamRows(body, hitters, schedule, days) {
+  const byTeam = new Map();
+  for (const hitter of hitters) {
+    const key = teamKey(hitter['MLB Team'], schedule);
+    if (!key) continue;
+    if (!byTeam.has(key)) byTeam.set(key, []);
+    byTeam.get(key).push(hitter.Player);
+  }
+
+  const rows = [];
+  for (const [key, names] of byTeam.entries()) {
+    const games = [];
+    for (const day of days) {
+      const list = Array.isArray(schedule?.teams?.[key]?.[day]) ? schedule.teams[key][day] : [];
+      for (const game of list) games.push(game);
+    }
+    const opponents = [...new Set(games.map(g => g.opponent).filter(Boolean))];
+    const home = games.filter(g => g.home_away === 'home').length;
+    const road = games.filter(g => g.home_away === 'away').length;
+    const probable = games.filter(g => g.opponent_probable_pitcher).length;
+    rows.push({key, names:[...names].sort(), games:games.length, opponents, home, road, probable});
+  }
+  rows.sort((a,b) => b.games-a.games || a.key.localeCompare(b.key));
+
+  body.replaceChildren();
+  for (const row of rows) {
+    const tr = document.createElement('tr');
+    const values = [
+      row.key,
+      compactNames(row.names, 3),
+      String(row.games),
+      compactNames(row.opponents, 4),
+      `${row.home} / ${row.road}`,
+      row.games ? `${row.probable}/${row.games}` : '0/0'
+    ];
+    for (const value of values) {
+      const td = document.createElement('td');
+      td.textContent = value;
+      tr.append(td);
+    }
+    body.append(tr);
+  }
+}
+
 function renderSummary(data) {
   ensureWeeklySummary();
   const host = document.getElementById('weekly-glance');
   const body = document.getElementById('weekly-opponent-snapshot');
-  if (!host || !body) return;
+  const teamBody = document.getElementById('weekly-team-snapshot');
+  if (!host || !body || !teamBody) return;
   host.replaceChildren();
   body.replaceChildren();
+  teamBody.replaceChildren();
 
   const schedule = data.weekly_schedule;
   const team = data.teams.find(t => t.Team.trim().toLowerCase() === 'desert rats');
@@ -118,13 +168,15 @@ function renderSummary(data) {
 
   if (days.length !== 7) {
     addMetric(host, 'Schedule', 'Unavailable', 'Verified weekly MLB schedule is missing.');
-    const tr = document.createElement('tr');
-    const td = document.createElement('td');
-    td.colSpan = 5;
-    td.className = 'empty';
-    td.textContent = 'Verified opponent snapshot unavailable.';
-    tr.append(td);
-    body.append(tr);
+    for (const target of [body, teamBody]) {
+      const tr = document.createElement('tr');
+      const td = document.createElement('td');
+      td.colSpan = target === body ? 5 : 6;
+      td.className = 'empty';
+      td.textContent = 'Verified weekly snapshot unavailable.';
+      tr.append(td);
+      target.append(tr);
+    }
     return;
   }
 
@@ -158,21 +210,19 @@ function renderSummary(data) {
   }
 
   const twoStart = startsByPitcher.filter(([,c]) => c >= 2).map(([n,c]) => `${n} (${c})`);
-  hitterCounts.sort((a,b) => b[1]-a[1] || a[0].localeCompare(b[0]));
-  const maxGames = hitterCounts[0]?.[1] ?? 0;
-  const minGames = hitterCounts[hitterCounts.length-1]?.[1] ?? 0;
-  const busiest = hitterCounts.filter(([,c]) => c === maxGames).map(([n]) => n);
-  const lightest = hitterCounts.filter(([,c]) => c === minGames).map(([n]) => n);
+  const sevenGameHitters = hitterCounts.filter(([,c]) => c >= 7).map(([n]) => n);
+  const shortWeekHitters = hitterCounts.filter(([,c]) => c > 0 && c <= 6).map(([n,c]) => `${n} (${c})`);
   const pct = hitterGames ? Math.round((probableCoverage / hitterGames) * 100) : 0;
 
-  addMetric(host, 'Hitter Games', hitterGames, `${hitters.length} active hitters in roster feed`);
+  addMetric(host, 'Hitter Games', hitterGames, `${hitters.length} hitters in roster feed`);
+  addMetric(host, '7+ Game Hitters', sevenGameHitters.length, compactNames(sevenGameHitters, 2));
+  addMetric(host, 'Short-Week Hitters', shortWeekHitters.length, compactNames(shortWeekHitters, 2));
   addMetric(host, 'Projected SP Starts', projectedStarts, `${startsByPitcher.length} starters currently matched`);
   addMetric(host, 'Two-Start SPs', twoStart.length, compactNames(twoStart, 2));
   addMetric(host, 'Probable SP Coverage', `${pct}%`, `${probableCoverage}/${hitterGames} hitter-game matchups named`);
-  addMetric(host, 'Busiest Hitter Slate', `${maxGames} games`, compactNames(busiest, 2));
-  addMetric(host, 'Lightest Hitter Slate', `${minGames} games`, compactNames(lightest, 2));
 
   for (const day of days) renderDayRow(body, day, hitters, starters, schedule);
+  renderTeamRows(teamBody, hitters, schedule, days);
 }
 
 async function load() {
