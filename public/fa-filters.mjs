@@ -54,8 +54,34 @@ function ensurePositionFilter() {
   select.addEventListener('change', render);
 }
 
+function ensureStatColumns() {
+  const body = document.getElementById('fa-rows');
+  const table = body?.closest('table');
+  const row = table?.querySelector('thead tr');
+  if (!row || row.querySelector('[data-fa-14d]')) return;
+  for (const label of ['14D Points','14D PPG']) {
+    const th = document.createElement('th');
+    th.dataset.fa14d = '1';
+    th.textContent = label;
+    row.append(th);
+  }
+  const wrap = table.closest('.tablewrap');
+  if (wrap && !document.getElementById('fa-14d-note')) {
+    const note = document.createElement('div');
+    note.id = 'fa-14d-note';
+    note.className = 'note';
+    note.style.margin = '8px 0 0';
+    wrap.insertAdjacentElement('afterend', note);
+  }
+}
+
+function fmt(value, digits=1) {
+  return Number.isFinite(value) ? Number(value).toFixed(digits) : '—';
+}
+
 function render() {
   if (!data) return;
+  ensureStatColumns();
   const body = document.getElementById('fa-rows');
   if (!body) return;
   const q = String(document.getElementById('fa-search')?.value || '').trim().toLowerCase();
@@ -69,12 +95,27 @@ function render() {
     if (!matchesPosition(player, position)) return false;
     const haystack = [player.name, player.mlbTeam, displayPositions(player.positions), player.availability].join(' ').toLowerCase();
     return !q || haystack.includes(q);
+  }).sort((a, b) => {
+    const ap = Number.isFinite(a.points14) ? a.points14 : -Infinity;
+    const bp = Number.isFinite(b.points14) ? b.points14 : -Infinity;
+    if (bp !== ap) return bp - ap;
+    const ag = Number.isFinite(a.ppg14) ? a.ppg14 : -Infinity;
+    const bg = Number.isFinite(b.ppg14) ? b.ppg14 : -Infinity;
+    if (bg !== ag) return bg - ag;
+    return String(a.name || '').localeCompare(String(b.name || ''));
   }).slice(0, 250);
 
   body.replaceChildren();
   for (const player of rows) {
     const tr = document.createElement('tr');
-    for (const value of [player.name, player.mlbTeam, displayPositions(player.positions), player.availability]) {
+    for (const value of [
+      player.name,
+      player.mlbTeam,
+      displayPositions(player.positions),
+      player.availability,
+      fmt(player.points14, 1),
+      fmt(player.ppg14, 2),
+    ]) {
       const td = document.createElement('td');
       td.textContent = value || 'Unavailable';
       tr.append(td);
@@ -84,16 +125,25 @@ function render() {
   if (!rows.length) {
     const tr = document.createElement('tr');
     const td = document.createElement('td');
-    td.colSpan = 4;
+    td.colSpan = 6;
     td.className = 'empty';
     td.textContent = 'No verified matching free agents.';
     tr.append(td);
     body.append(tr);
   }
+
+  const note = document.getElementById('fa-14d-note');
+  if (note) {
+    const recent = data.recent_14d;
+    note.textContent = recent?.start_date && recent?.end_date
+      ? `Sorted by 14-day fantasy points, high to low. Window: ${recent.start_date} through ${recent.end_date}. ${recent.source || ''}`
+      : '14-day fantasy-point feed is not verified in the current snapshot.';
+  }
 }
 
 async function load() {
   ensurePositionFilter();
+  ensureStatColumns();
   try {
     const response = await fetch(`${SNAPSHOT_URL}?fa=${Date.now()}`, {cache:'no-store'});
     if (!response.ok) throw new Error(`HTTP ${response.status}`);
@@ -105,6 +155,7 @@ async function load() {
 }
 
 ensurePositionFilter();
+ensureStatColumns();
 document.getElementById('fa-search')?.addEventListener('input', render);
 document.getElementById('fa-type')?.addEventListener('change', render);
 document.querySelectorAll('.reloadbtn').forEach(btn => btn.addEventListener('click', load));
