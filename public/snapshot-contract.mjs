@@ -11,9 +11,16 @@ function cleanPool(pool) {
     teamId:p.teamId,
     teamName:p.teamName,
     sourceStatus:p.sourceStatus,
+    points7:Number.isFinite(p.points7) ? p.points7 : null,
+    games7:Number.isFinite(p.games7) ? p.games7 : null,
+    ppg7:Number.isFinite(p.ppg7) ? p.ppg7 : null,
     points14:Number.isFinite(p.points14) ? p.points14 : null,
     games14:Number.isFinite(p.games14) ? p.games14 : null,
     ppg14:Number.isFinite(p.ppg14) ? p.ppg14 : null,
+    points30:Number.isFinite(p.points30) ? p.points30 : null,
+    games30:Number.isFinite(p.games30) ? p.games30 : null,
+    ppg30:Number.isFinite(p.ppg30) ? p.ppg30 : null,
+    seasonMetrics:p.seasonMetrics && typeof p.seasonMetrics === 'object' ? {...p.seasonMetrics} : null,
   }));
 }
 
@@ -84,6 +91,18 @@ function cleanRecent14(value) {
   };
 }
 
+function cleanPlayerLab(value) {
+  if (!value || typeof value !== 'object') return null;
+  return {
+    source:typeof value.source === 'string' ? value.source : null,
+    season:Number.isFinite(value.season) ? value.season : null,
+    recent_end_date:typeof value.recent_end_date === 'string' ? value.recent_end_date : null,
+    window7_start:typeof value.window7_start === 'string' ? value.window7_start : null,
+    window30_start:typeof value.window30_start === 'string' ? value.window30_start : null,
+    matched_pool_players:Number.isFinite(value.matched_pool_players) ? value.matched_pool_players : null,
+  };
+}
+
 export function validateSnapshot(value, now = Date.now()) {
   const fail = () => { throw new Error('The latest complete Fantrax refresh is unavailable or overdue.'); };
   if (!value || value.schema_version !== 1 || value.league_id !== 'gxq8uqpqmg5m5edj') fail();
@@ -108,6 +127,7 @@ export function validateSnapshot(value, now = Date.now()) {
     weekly_schedule:cleanWeeklySchedule(value.weekly_schedule),
     pitcher_recent_games:cleanPitcherRecentGames(value.pitcher_recent_games),
     recent_14d:cleanRecent14(value.recent_14d),
+    player_lab:cleanPlayerLab(value.player_lab),
     unavailable:Array.isArray(value.unavailable) ? [...value.unavailable] : [],
   };
 }
