@@ -14,6 +14,7 @@ on:
       - 'test_fic_matchups.py'
       - 'add_pitcherlist.py'
       - 'test_pitcherlist.py'
+      - 'add_rotoballer_weekly.py'
       - 'mlb_pitcher_logs.py'
       - 'add_pitcher_logs.py'
       - 'add_recent_14d_stats.py'
@@ -79,6 +80,9 @@ jobs:
 
       - name: Attach Pitcher List weekly SP rankings
         run: python add_pitcherlist.py --snapshot public/fantasygm.json
+
+      - name: Discover current-week RotoBaller Start/Sit sources
+        run: python add_rotoballer_weekly.py --snapshot public/fantasygm.json
 
       - name: Attach verified pitcher last-three game logs
         run: python add_pitcher_logs.py --snapshot public/fantasygm.json
