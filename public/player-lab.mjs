@@ -28,6 +28,11 @@ function isPitcher(player) {
   return normalizePositionList(player.positions).some(p => ['P','SP','RP'].includes(p));
 }
 
+function isFreeAgent(player) {
+  const a = String(player.availability || '').toLowerCase();
+  return a.includes('free') || a === 'fa';
+}
+
 function fmt(value, digits=1) {
   return Number.isFinite(value) ? Number(value).toFixed(digits) : '—';
 }
@@ -113,6 +118,19 @@ function positionRank(player) {
   return {rank:index + 1, total:peers.length};
 }
 
+function bestAvailablePeers(player) {
+  const positions = normalizePositionList(player.positions);
+  const pitcher = isPitcher(player);
+  return (data?.pool || []).filter(p => {
+    if (!isFreeAgent(p) || isPitcher(p) !== pitcher || !Number.isFinite(p.ppg14)) return false;
+    const pp = normalizePositionList(p.positions);
+    return positions.length && pp.length && positions.some(pos => pp.includes(pos));
+  }).sort((a,b) => {
+    if ((b.ppg14 ?? -Infinity) !== (a.ppg14 ?? -Infinity)) return (b.ppg14 ?? -Infinity) - (a.ppg14 ?? -Infinity);
+    return String(a.name || '').localeCompare(String(b.name || ''));
+  }).slice(0,5);
+}
+
 function rankBand(rank) {
   if (!rank || !rank.total) return {label:'Unranked', detail:'14D FP/G peer rank unavailable'};
   const share = rank.rank / rank.total;
@@ -140,6 +158,17 @@ function profileSignal(sm) {
   if (sm.k_pct <= 20 && sm.bb_pct >= 8) return {label:'Strong discipline', detail:`${fmt(sm.k_pct,1)}% K · ${fmt(sm.bb_pct,1)}% BB`};
   if (sm.k_pct >= 28) return {label:'High K rate', detail:`${fmt(sm.k_pct,1)}% K · ${fmt(sm.bb_pct,1)}% BB`};
   return {label:'Middle discipline', detail:`${fmt(sm.k_pct,1)}% K · ${fmt(sm.bb_pct,1)}% BB`};
+}
+
+function renderAvailablePeers(player) {
+  const peers = bestAvailablePeers(player);
+  if (!peers.length) return '<div class="empty">No verified free-agent peers with 14-day FP/G at the same position.</div>';
+  const rows = peers.map(p => {
+    const delta = Number.isFinite(player.ppg14) ? p.ppg14 - player.ppg14 : null;
+    const deltaText = Number.isFinite(delta) ? `${delta >= 0 ? '+' : ''}${delta.toFixed(2)}` : '—';
+    return `<tr><td>${p.name || 'Unavailable'}</td><td>${normalizePositions(p.positions)}</td><td>${fmt(p.ppg14,2)}</td><td>${fmt(p.ppg7,2)}</td><td>${deltaText}</td></tr>`;
+  }).join('');
+  return `<div class="tablewrap"><table><thead><tr><th>Best Available</th><th>Positions</th><th>14D FP/G</th><th>7D FP/G</th><th>vs Selected</th></tr></thead><tbody>${rows}</tbody></table></div>`;
 }
 
 function renderDetail(player) {
@@ -202,9 +231,11 @@ function renderDetail(player) {
     <div class="summary">${signalCards}</div>
     <h2>Fantasy Context</h2>
     <div class="summary">${contextCards}</div>
+    <h2>Best Available at Position</h2>
+    ${renderAvailablePeers(player)}
     <h2>Season Performance</h2>
     <div class="summary">${seasonCards || metric('Season metrics','Unavailable')}</div>
-    <div class="note">Decision Signals are deterministic labels from the verified values shown above, not external expert rankings. Statcast and FanGraphs metrics remain separate future feeds.</div>`;
+    <div class="note">Decision Signals and free-agent comparisons are deterministic views of the verified values shown above, not external expert rankings. Statcast and FanGraphs metrics remain separate future feeds.</div>`;
 }
 
 function render() {
