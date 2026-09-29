@@ -12,6 +12,8 @@ on:
       - 'add_weekly_schedule.py'
       - 'add_fic_matchups.py'
       - 'test_fic_matchups.py'
+      - 'add_pitcherlist.py'
+      - 'test_pitcherlist.py'
       - 'mlb_pitcher_logs.py'
       - 'add_pitcher_logs.py'
       - 'add_recent_14d_stats.py'
@@ -22,6 +24,7 @@ on:
       - 'public/pitcher-today.mjs'
       - 'public/weekly-summary.mjs'
       - 'public/fic-weekly.mjs'
+      - 'public/pl-weekly.mjs'
       - 'public/fa-filters.mjs'
       - 'public/player-lab.mjs'
       - 'public/snapshot-contract.mjs'
@@ -74,6 +77,9 @@ jobs:
       - name: Attach Fantasy Info Central hitter matchup context
         run: python add_fic_matchups.py --snapshot public/fantasygm.json
 
+      - name: Attach Pitcher List weekly SP rankings
+        run: python add_pitcherlist.py --snapshot public/fantasygm.json
+
       - name: Attach verified pitcher last-three game logs
         run: python add_pitcher_logs.py --snapshot public/fantasygm.json
 
@@ -92,11 +98,12 @@ jobs:
           cp public/pitcher-today.mjs dist/public/pitcher-today.mjs
           cp public/weekly-summary.mjs dist/public/weekly-summary.mjs
           cp public/fic-weekly.mjs dist/public/fic-weekly.mjs
+          cp public/pl-weekly.mjs dist/public/pl-weekly.mjs
           cp public/fa-filters.mjs dist/public/fa-filters.mjs
           cp public/player-lab.mjs dist/public/player-lab.mjs
           cp public/snapshot-contract.mjs dist/public/snapshot-contract.mjs
           cp public/fantasygm.json dist/public/fantasygm.json
-          sed -i 's#</body>#<script type="module" src="public/fic-weekly.mjs"></script>\n</body>#' dist/index.html
+          sed -i 's#</body>#<script type="module" src="public/fic-weekly.mjs"></script>\n<script type="module" src="public/pl-weekly.mjs"></script>\n</body>#' dist/index.html
 
       - name: Deploy to Cloudflare Workers
         uses: cloudflare/wrangler-action@v4
