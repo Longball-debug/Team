@@ -27,6 +27,10 @@ function isFreeAgent(player) {
   return a.includes('free') || a === 'fa';
 }
 
+function hasRecentStats(player) {
+  return Number.isFinite(player.points14) && Number.isFinite(player.ppg14) && Number(player.games14) > 0;
+}
+
 function matchesPosition(player, wanted) {
   if (!wanted || wanted === 'all') return true;
   const positions = normalizePositions(player.positions);
@@ -52,6 +56,28 @@ function ensurePositionFilter() {
     select.append(option);
   }
   type.insertAdjacentElement('afterend', select);
+  select.addEventListener('change', render);
+}
+
+function ensureActivityFilter() {
+  if (document.getElementById('fa-activity')) return;
+  const position = document.getElementById('fa-position');
+  if (!position) return;
+  const select = document.createElement('select');
+  select.id = 'fa-activity';
+  select.className = 'select';
+  select.setAttribute('aria-label', 'Free agent recent activity');
+  for (const [value, label] of [
+    ['recent','Recent MLB stats'],
+    ['all','All free agents'],
+    ['nostats','No recent stats']
+  ]) {
+    const option = document.createElement('option');
+    option.value = value;
+    option.textContent = label;
+    select.append(option);
+  }
+  position.insertAdjacentElement('afterend', select);
   select.addEventListener('change', render);
 }
 
@@ -83,15 +109,21 @@ function render() {
   const q = String(document.getElementById('fa-search')?.value || '').trim().toLowerCase();
   const type = document.getElementById('fa-type')?.value || 'all';
   const position = document.getElementById('fa-position')?.value || 'all';
+  const activity = document.getElementById('fa-activity')?.value || 'recent';
 
   const rows = (data.pool || []).filter(player => {
     if (!isFreeAgent(player)) return false;
     if (type === 'pitchers' && !isPitcher(player)) return false;
     if (type === 'hitters' && isPitcher(player)) return false;
     if (!matchesPosition(player, position)) return false;
+    if (activity === 'recent' && !hasRecentStats(player)) return false;
+    if (activity === 'nostats' && hasRecentStats(player)) return false;
     const haystack = [player.name, player.mlbTeam, displayPositions(player.positions), player.availability].join(' ').toLowerCase();
     return !q || haystack.includes(q);
   }).sort((a, b) => {
+    const ar = hasRecentStats(a) ? 1 : 0;
+    const br = hasRecentStats(b) ? 1 : 0;
+    if (br !== ar) return br - ar;
     const ap = Number.isFinite(a.points14) ? a.points14 : -Infinity;
     const bp = Number.isFinite(b.points14) ? b.points14 : -Infinity;
     if (bp !== ap) return bp - ap;
@@ -124,14 +156,16 @@ function render() {
   const note = document.getElementById('fa-14d-note');
   if (note) {
     const recent = data.recent_14d;
+    const activityLabel = activity === 'recent' ? 'Showing free agents with verified recent MLB stats.' : activity === 'nostats' ? 'Showing free agents without verified recent MLB stats.' : 'Showing all free agents; players with verified recent stats are listed first.';
     note.textContent = recent?.start_date && recent?.end_date
-      ? `Sorted by 14-day fantasy points, high to low. Window: ${recent.start_date} through ${recent.end_date}. ${recent.source || ''}`
+      ? `${activityLabel} Sorted by 14-day fantasy points, high to low. Window: ${recent.start_date} through ${recent.end_date}. ${recent.source || ''}`
       : '14-day fantasy-point feed is not verified in the current snapshot.';
   }
 }
 
 async function load() {
   ensurePositionFilter();
+  ensureActivityFilter();
   ensureStatColumns();
   try {
     const response = await fetch(`${SNAPSHOT_URL}?fa=${Date.now()}`, {cache:'no-store'});
@@ -144,6 +178,7 @@ async function load() {
 }
 
 ensurePositionFilter();
+ensureActivityFilter();
 ensureStatColumns();
 document.getElementById('fa-search')?.addEventListener('input', render);
 document.getElementById('fa-type')?.addEventListener('change', render);
