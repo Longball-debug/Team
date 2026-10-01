@@ -44,14 +44,16 @@ class ArticleParser(HTMLParser):
         super().__init__()
         self.heading: str | None = None
         self._heading_buf: list[str] | None = None
+        self._heading_tag: str | None = None
         self._table: list[list[str]] | None = None
         self._row: list[str] | None = None
         self._cell: list[str] | None = None
         self.tables: list[tuple[str | None, list[list[str]]]] = []
 
     def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
-        if tag in {"h2", "h3", "h4"}:
+        if tag in {"h2", "h3", "h4"} or (tag == "div" and "title" in (dict(attrs).get("class") or "").split()):
             self._heading_buf = []
+            self._heading_tag = tag
         elif tag == "table":
             self._table = []
         elif self._table is not None and tag == "tr":
@@ -69,11 +71,12 @@ class ArticleParser(HTMLParser):
             self._cell.append(text)
 
     def handle_endtag(self, tag: str) -> None:
-        if tag in {"h2", "h3", "h4"} and self._heading_buf is not None:
+        if tag == self._heading_tag and self._heading_buf is not None:
             text = " ".join(self._heading_buf).strip()
             if text:
                 self.heading = text
             self._heading_buf = None
+            self._heading_tag = None
         elif tag in {"th", "td"} and self._cell is not None and self._row is not None:
             self._row.append(" ".join(self._cell).strip())
             self._cell = None
