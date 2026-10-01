@@ -15,6 +15,10 @@ on:
       - 'add_pitcherlist.py'
       - 'test_pitcherlist.py'
       - 'add_rotoballer_weekly.py'
+      - 'rotoballer_ratings.py'
+      - 'test_rotoballer_weekly.py'
+      - 'test_rb_weekly.mjs'
+      - 'public/rb-weekly.mjs'
       - 'mlb_pitcher_logs.py'
       - 'add_pitcher_logs.py'
       - 'add_recent_14d_stats.py'
@@ -64,7 +68,7 @@ jobs:
           node-version: '24'
 
       - name: Verify website freshness contract
-        run: node --test test_snapshot_contract.mjs
+        run: node --test test_snapshot_contract.mjs test_rb_weekly.mjs
 
       - name: Collect Fantrax once
         run: python fantrax_refresh.py --root "$RUNNER_TEMP/fantasygm" --league-id gxq8uqpqmg5m5edj --no-prompt
@@ -81,7 +85,7 @@ jobs:
       - name: Attach Pitcher List weekly SP rankings
         run: python add_pitcherlist.py --snapshot public/fantasygm.json
 
-      - name: Discover current-week RotoBaller Start/Sit sources
+      - name: Attach current-week RotoBaller Start/Sit ratings
         run: python add_rotoballer_weekly.py --snapshot public/fantasygm.json
 
       - name: Attach verified pitcher last-three game logs
@@ -99,6 +103,7 @@ jobs:
           mkdir -p dist/public
           cp index.html dist/index.html
           cp public/website.mjs dist/public/website.mjs
+          cp public/rb-weekly.mjs dist/public/rb-weekly.mjs
           cp public/pitcher-today.mjs dist/public/pitcher-today.mjs
           cp public/weekly-summary.mjs dist/public/weekly-summary.mjs
           cp public/fic-weekly.mjs dist/public/fic-weekly.mjs

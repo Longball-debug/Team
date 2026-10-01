@@ -26,7 +26,7 @@ function decorate(data) {
 
   for (const row of rows) {
     const cells = row.querySelectorAll('td');
-    const name = cells[0]?.textContent?.trim();
+    const name = cells[0]?.dataset.playerName || cells[0]?.textContent?.trim();
     if (!name || !source.players?.[name]) continue;
     days.forEach((day, index) => {
       const item = source.players[name]?.[day];

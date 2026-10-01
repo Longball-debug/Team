@@ -125,6 +125,7 @@ export function validateSnapshot(value, now = Date.now()) {
     pool:cleanPool(value.pool),
     transactions:Array.isArray(value.transactions) ? value.transactions.map(t => ({...t})) : null,
     weekly_schedule:cleanWeeklySchedule(value.weekly_schedule),
+    rotoballer_weekly:value.rotoballer_weekly && typeof value.rotoballer_weekly === 'object' ? value.rotoballer_weekly : null,
     pitcher_recent_games:cleanPitcherRecentGames(value.pitcher_recent_games),
     recent_14d:cleanRecent14(value.recent_14d),
     player_lab:cleanPlayerLab(value.player_lab),

@@ -1,13 +1,4 @@
-"""Attach current-week RotoBaller Start/Sit source metadata.
-
-This collector is deliberately freshness-gated. It discovers the latest public
-RotoBaller hitter/pitcher Start/Sit articles, extracts their advertised week,
-and attaches them only when that week matches the verified MLB schedule in the
-FantasyGM snapshot. Stale articles are never surfaced as current advice.
-
-The rating-table parser will consume the article's published sheet in the next
-layer; this step establishes reliable current-week source discovery first.
-"""
+"""Attach freshness-gated RotoBaller pitcher and hitter chart ratings."""
 from __future__ import annotations
 
 import argparse
@@ -19,6 +10,7 @@ import urllib.request
 from datetime import date
 from pathlib import Path
 from typing import Any
+from rotoballer_ratings import parse_ratings, sheet_csv_url, merge_ratings
 
 BASE = "https://www.rotoballer.com"
 INDEX_URL = BASE + "/fantasy-baseball"
@@ -52,11 +44,13 @@ def _week_from_slug(url: str) -> tuple[str, str] | None:
     return start, end
 
 
-def discover(index_html: str) -> dict[str, str]:
+def discover(index_html: str, expected_start=None, expected_end=None) -> dict[str, str]:
     out: dict[str, str] = {}
     for m in ARTICLE_RE.finditer(index_html):
         kind = m.group("kind").lower()
-        out.setdefault(kind, html.unescape(m.group("url")))
+        url = html.unescape(m.group("url"))
+        if kind not in out or _week_from_slug(url) == (expected_start, expected_end):
+            out[kind] = url
     return out
 
 
@@ -65,13 +59,31 @@ def inspect_article(url: str, expected_start: str, expected_end: str) -> dict[st
     if period != (expected_start, expected_end):
         return {"status": "stale", "url": url, "week_start": period[0] if period else None, "week_end": period[1] if period else None}
     source = _fetch(url)
-    iframe = IFRAME_RE.search(source)
+    kind = 'pitchers' if '/start-sit-pitchers-' in url else 'hitters'
+    rows = parse_ratings(source, kind, expected_start, expected_end)
+    sheets = []
+    # Both iframe sources and the article's separate-page links are published charts.
+    for raw in re.findall(r'(?:src|href)=["\']([^"\']+)["\']', source, re.I):
+        csv_url = sheet_csv_url(html.unescape(raw))
+        if csv_url and csv_url not in sheets:
+            sheets.append(csv_url)
+    errors = []
+    for sheet in sheets[:4]:
+        try:
+            rows.extend(parse_ratings(_fetch(sheet), kind, expected_start, expected_end))
+        except Exception as exc:
+            errors.append(type(exc).__name__)
+    rows = merge_ratings(rows)
+    verified = any(row.get('status') == 'verified' for row in rows)
     return {
-        "status": "verified",
+        "status": "verified" if verified else "unavailable",
         "url": url,
         "week_start": expected_start,
         "week_end": expected_end,
-        "published_sheet": html.unescape(iframe.group(1)) if iframe else None,
+        "published_sheets": sheets[:4],
+        "ratings": rows,
+        "reason": None if verified else "NOT VERIFIED: no unambiguous current-week chart ratings",
+        "fetch_errors": errors,
     }
 
 
@@ -93,7 +105,7 @@ def attach(snapshot: dict[str, Any]) -> dict[str, Any]:
         return snapshot
 
     try:
-        links = discover(_fetch(INDEX_URL))
+        links = discover(_fetch(INDEX_URL), week_start, week_end)
     except Exception as exc:
         result["reason"] = f"index fetch failed: {type(exc).__name__}"
         snapshot["rotoballer_weekly"] = result
@@ -127,7 +139,7 @@ def main() -> None:
     tmp.write_text(json.dumps(data, ensure_ascii=False, allow_nan=False) + "\n", encoding="utf-8")
     tmp.replace(args.snapshot)
     rb = data["rotoballer_weekly"]
-    print(f"RotoBaller weekly source: {rb['status']} ({rb.get('reason','current source found')})")
+    print(f"RotoBaller weekly ratings: {rb['status']} ({rb.get('reason','current source found')})")
 
 
 if __name__ == "__main__":

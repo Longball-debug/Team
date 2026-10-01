@@ -46,7 +46,7 @@ function decorateHitters(data, days) {
 function decoratePitchers(data, days) {
   for (const row of document.querySelectorAll('#weekly-pitchers tr')) {
     const cells = row.querySelectorAll('td');
-    const player = cells[0]?.textContent?.trim();
+    const player = cells[0]?.dataset.playerName || cells[0]?.textContent?.trim();
     if (!player) continue;
     days.forEach((day, index) => {
       const target = cells[index + 1]?.querySelector('.match');

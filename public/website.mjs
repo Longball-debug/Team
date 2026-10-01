@@ -1,3 +1,4 @@
+import {appendRbSummary} from './rb-weekly.mjs';
 import {SNAPSHOT_URL, validateSnapshot} from './snapshot-contract.mjs';
 
 let snapshot = null;
@@ -156,7 +157,7 @@ function matchupBlock(games, {includeProbable=false, starterName=null}={}) {
   return wrapper;
 }
 
-function renderWeeklyTable(id, records, schedule, kind) {
+function renderWeeklyTable(id, records, schedule, kind, data) {
   const body = document.getElementById(id);
   if (!body) return;
   body.replaceChildren();
@@ -175,6 +176,8 @@ function renderWeeklyTable(id, records, schedule, kind) {
     const tr = document.createElement('tr');
     const playerCell = document.createElement('td');
     playerCell.textContent = record.Player;
+    playerCell.dataset.playerName = record.Player;
+    appendRbSummary(playerCell, data, record, kind);
     tr.append(playerCell);
     const teamKey = scheduleTeamKey(record.MLB, schedule);
     for (const day of days) {
@@ -306,8 +309,8 @@ function renderCore(data) {
   renderPitcherRecentGames(pitchers, data.pitcher_recent_games);
 
   updateWeeklyHeaders(data.weekly_schedule);
-  renderWeeklyTable('weekly-hitters', hitters, data.weekly_schedule, 'hitter');
-  renderWeeklyTable('weekly-pitchers', pitchers, data.weekly_schedule, 'pitcher');
+  renderWeeklyTable('weekly-hitters', hitters, data.weekly_schedule, 'hitter', data);
+  renderWeeklyTable('weekly-pitchers', pitchers, data.weekly_schedule, 'pitcher', data);
 
   const note = document.getElementById('weekly-note');
   if (note) {
