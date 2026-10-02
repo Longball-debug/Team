@@ -1,6 +1,6 @@
 import {appendRbSummary} from './rb-weekly.mjs';
 import {SNAPSHOT_URL, validateSnapshot} from './snapshot-contract.mjs';
-import {buildDailyTrendRows, formatDailyFpg} from './daily-trends.mjs';
+import {buildDailyTrendRows, dailyTrendFor, formatDailyFpg} from './daily-trends.mjs';
 
 let snapshot = null;
 
@@ -235,19 +235,21 @@ function renderDailyActions() {
   host.append(card);
 }
 
-function renderDailyMatchups(hitters, schedule) {
+function renderDailyMatchups(hitters, schedule, pool) {
   const body = document.getElementById('daily-matchups');
   if (!body) return;
+  const poolById = new Map((pool || []).map(player => [player.fantraxId, player]));
   body.replaceChildren();
   for (const player of hitters) {
     const games = todayGames(player, schedule);
+    const trend = dailyTrendFor(poolById.get(player['Player ID']));
     const tr = document.createElement('tr');
     tr.append(cell(player.Player));
     tr.append(cell(games.length ? games.map(g => `${g.home_away === 'away' ? '@' : 'vs '}${g.opponent}`).join(' / ') : 'Off day'));
     tr.append(cell(games.length ? games.map(g => g.opponent_probable_pitcher || 'Not verified').join(' / ') : '—'));
     tr.append(cell(games.length ? 'Not verified' : '—'));
     appendRatingCell(tr, games.length ? 'Not rated' : '—', 'gray');
-    tr.append(cell('Not verified'));
+    appendRatingCell(tr, trend.label, trend.tone);
     body.append(tr);
   }
 }
@@ -306,7 +308,7 @@ function renderCore(data) {
   const pitchers = roster.filter(p => p.pitcher);
 
   renderDailyActions();
-  renderDailyMatchups(hitters, data.weekly_schedule);
+  renderDailyMatchups(hitters, data.weekly_schedule, data.pool);
   renderDailyTrends(hitters, data.pool);
   renderPitcherRecentGames(pitchers, data.pitcher_recent_games);
 

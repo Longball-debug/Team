@@ -1,6 +1,6 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
-import {buildDailyTrendRows,formatDailyFpg} from './public/daily-trends.mjs';
+import {buildDailyTrendRows,formatDailyFpg,dailyTrendFor} from './public/daily-trends.mjs';
 
 test('sorts Desert Rats hitter trend rows by verified 7D FP/G and keeps missing values last',()=>{
  const hitters=[
@@ -19,4 +19,5 @@ test('sorts Desert Rats hitter trend rows by verified 7D FP/G and keeps missing 
  assert.equal(rows.length,3);
  assert.equal(formatDailyFpg(rows[2].metrics.ppg7),'—');
  assert.equal(formatDailyFpg(rows[0].metrics.ppg14),'4.00');
+ assert.equal(dailyTrendFor({ppg7:1,ppg30:4,games7:3}).label,'Falling');
 });
