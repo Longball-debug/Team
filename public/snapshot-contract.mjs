@@ -20,16 +20,38 @@ function cleanPool(pool) {
     points30:Number.isFinite(p.points30) ? p.points30 : null,
     games30:Number.isFinite(p.games30) ? p.games30 : null,
     ppg30:Number.isFinite(p.ppg30) ? p.ppg30 : null,
-    statcast2026:p.statcast2026 && typeof p.statcast2026 === 'object' ? {
-      exitVelocity:Number.isFinite(p.statcast2026.exitVelocity) ? p.statcast2026.exitVelocity : null,
-      hardHitPct:Number.isFinite(p.statcast2026.hardHitPct) ? p.statcast2026.hardHitPct : null,
-      barrelPct:Number.isFinite(p.statcast2026.barrelPct) ? p.statcast2026.barrelPct : null,
-      xwoba:Number.isFinite(p.statcast2026.xwoba) ? p.statcast2026.xwoba : null,
-      xslg:Number.isFinite(p.statcast2026.xslg) ? p.statcast2026.xslg : null,
-      sprintSpeed:Number.isFinite(p.statcast2026.sprintSpeed) ? p.statcast2026.sprintSpeed : null,
-    } : null,
+    statcast2026:cleanStatcastPlayer(p.statcast2026),
     seasonMetrics:p.seasonMetrics && typeof p.seasonMetrics === 'object' ? {...p.seasonMetrics} : null,
   }));
+}
+
+function cleanStatcastPlayer(value) {
+  if (!value || typeof value !== 'object' || !/^\d+$/.test(String(value.savantId || ''))) return null;
+  const bounded = (key, max) => Number.isFinite(value[key]) && value[key] >= 0 && value[key] <= max ? value[key] : null;
+  return {
+    savantId:String(value.savantId),
+    exitVelocity:bounded('exitVelocity',150),
+    hardHitPct:bounded('hardHitPct',100),
+    barrelPct:bounded('barrelPct',100),
+  };
+}
+
+function cleanStatcastSummary(value) {
+  if (!value || typeof value !== 'object' || value.source !== 'Baseball Savant' || value.season !== 2026) return null;
+  if (typeof value.source_url !== 'string' || !value.source_url.startsWith('https://baseballsavant.mlb.com/leaderboard/statcast?')) return null;
+  const counts = ['records_received','matched_pool_players','ambiguous_name_matches','unmatched_records'];
+  if (counts.some(key => !Number.isInteger(value[key]) || value[key] < 0)) return null;
+  if (value.records_received === 0 || value.matched_pool_players + value.ambiguous_name_matches + value.unmatched_records !== value.records_received) return null;
+  return {
+    source:'Baseball Savant',
+    source_url:value.source_url,
+    season:2026,
+    records_received:value.records_received,
+    matched_pool_players:value.matched_pool_players,
+    ambiguous_name_matches:value.ambiguous_name_matches,
+    unmatched_records:value.unmatched_records,
+    fetched_at:typeof value.fetched_at === 'string' ? value.fetched_at : null,
+  };
 }
 
 function cleanWeeklySchedule(schedule) {
@@ -137,6 +159,7 @@ export function validateSnapshot(value, now = Date.now()) {
     pitcher_recent_games:cleanPitcherRecentGames(value.pitcher_recent_games),
     recent_14d:cleanRecent14(value.recent_14d),
     player_lab:cleanPlayerLab(value.player_lab),
+    statcast2026:cleanStatcastSummary(value.statcast2026),
     unavailable:Array.isArray(value.unavailable) ? [...value.unavailable] : [],
   };
 }

@@ -207,15 +207,13 @@ function renderDetail(player) {
   const statcast = player.statcast2026 || {};
   const statcastCard = (key, label, digits, unit='') => {
     const value = statcast[key];
-    return metric(label, Number.isFinite(value) ? `${Number(value).toFixed(digits)}${unit}` : 'NOT VERIFIED', Number.isFinite(value) ? '2026 Baseball Savant' : '2026 Baseball Savant value unavailable');
+    return metric(label, Number.isFinite(value) ? `${Number(value).toFixed(digits)}${unit}` : '—', Number.isFinite(value) ? '2026 Baseball Savant' : '');
   };
-  const statcastCards = pitcher ? '' : [
+  const showStatcast = !pitcher || Boolean(player.statcast2026);
+  const statcastCards = [
     statcastCard('exitVelocity','Exit Velocity',1,' mph'),
     statcastCard('hardHitPct','Hard-Hit%',1,'%'),
     statcastCard('barrelPct','Barrel%',1,'%'),
-    statcastCard('xwoba','xwOBA',3),
-    statcastCard('xslg','xSLG',3),
-    statcastCard('sprintSpeed','Sprint Speed',1,' ft/s'),
   ].join('');
 
   const signalCards = [
@@ -249,7 +247,7 @@ function renderDetail(player) {
     ${renderAvailablePeers(player)}
     <h2>Season Performance</h2>
     <div class="summary">${seasonCards || metric('Season metrics','Unavailable')}</div>
-    ${pitcher ? '' : `<h2>2026 Statcast</h2><div class="summary">${statcastCards}</div>`}
+    ${showStatcast ? `<h2>Statcast</h2><div class="summary">${statcastCards}</div>` : ''}
     <div class="note">Decision Signals and free-agent comparisons are deterministic views of the verified values shown above, not external expert rankings. Statcast values are shown only when verified from Baseball Savant.</div>`;
 }
 

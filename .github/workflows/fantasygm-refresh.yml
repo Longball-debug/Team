@@ -23,6 +23,8 @@ on:
       - 'add_pitcher_logs.py'
       - 'add_recent_14d_stats.py'
       - 'add_player_lab_stats.py'
+      - 'add_statcast_exit_velocity.py'
+      - 'test_statcast_exit_velocity.py'
       - 'wrangler.jsonc'
       - 'index.html'
       - 'public/website.mjs'
@@ -96,6 +98,9 @@ jobs:
 
       - name: Attach verified Player Lab metrics
         run: python add_player_lab_stats.py --snapshot public/fantasygm.json
+
+      - name: Attach verified 2026 Statcast Exit Velocity & Barrels
+        run: python add_statcast_exit_velocity.py --snapshot public/fantasygm.json
 
       - name: Prepare Cloudflare static site
         run: |
