@@ -27,6 +27,8 @@ on:
       - 'test_statcast_exit_velocity.py'
       - 'add_statcast_expected.py'
       - 'test_statcast_expected.py'
+      - 'add_statcast_sprint_speed.py'
+      - 'test_statcast_sprint_speed.py'
       - 'wrangler.jsonc'
       - 'index.html'
       - 'public/website.mjs'
@@ -106,6 +108,9 @@ jobs:
 
       - name: Attach verified 2026 Statcast Expected Statistics
         run: python add_statcast_expected.py --snapshot public/fantasygm.json
+
+      - name: Attach verified 2026 Statcast Sprint Speed
+        run: python add_statcast_sprint_speed.py --snapshot public/fantasygm.json
 
       - name: Prepare Cloudflare static site
         run: |

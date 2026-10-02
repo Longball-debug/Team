@@ -217,6 +217,7 @@ function renderDetail(player) {
     statcastCard('xba','xBA',3),
     statcastCard('xslg','xSLG',3),
     statcastCard('xwoba','xwOBA',3),
+    statcastCard('sprintSpeed','Sprint Speed',1,' ft/s'),
   ].join('');
 
   const signalCards = [
