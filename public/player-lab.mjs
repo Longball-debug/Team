@@ -214,6 +214,9 @@ function renderDetail(player) {
     statcastCard('exitVelocity','Exit Velocity',1,' mph'),
     statcastCard('hardHitPct','Hard-Hit%',1,'%'),
     statcastCard('barrelPct','Barrel%',1,'%'),
+    statcastCard('xba','xBA',3),
+    statcastCard('xslg','xSLG',3),
+    statcastCard('xwoba','xwOBA',3),
   ].join('');
 
   const signalCards = [

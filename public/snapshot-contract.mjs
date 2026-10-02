@@ -33,6 +33,25 @@ function cleanStatcastPlayer(value) {
     exitVelocity:bounded('exitVelocity',150),
     hardHitPct:bounded('hardHitPct',100),
     barrelPct:bounded('barrelPct',100),
+    xba:bounded('xba',1),
+    xslg:bounded('xslg',1),
+    xwoba:bounded('xwoba',1),
+  };
+}
+
+function cleanExpectedStatcastSummary(value) {
+  if (!value || typeof value !== 'object') return null;
+  if (typeof value.source_url !== 'string' || !value.source_url.startsWith('https://baseballsavant.mlb.com/leaderboard/expected_statistics?')) return null;
+  const counts = ['records_received','matched_pool_players','ambiguous_name_matches','unmatched_records'];
+  if (counts.some(key => !Number.isInteger(value[key]) || value[key] < 0)) return null;
+  if (value.records_received === 0 || value.matched_pool_players + value.ambiguous_name_matches + value.unmatched_records !== value.records_received) return null;
+  return {
+    source_url:value.source_url,
+    records_received:value.records_received,
+    matched_pool_players:value.matched_pool_players,
+    ambiguous_name_matches:value.ambiguous_name_matches,
+    unmatched_records:value.unmatched_records,
+    fetched_at:typeof value.fetched_at === 'string' ? value.fetched_at : null,
   };
 }
 
@@ -51,6 +70,7 @@ function cleanStatcastSummary(value) {
     ambiguous_name_matches:value.ambiguous_name_matches,
     unmatched_records:value.unmatched_records,
     fetched_at:typeof value.fetched_at === 'string' ? value.fetched_at : null,
+    expected_statistics:cleanExpectedStatcastSummary(value.expected_statistics),
   };
 }
 
