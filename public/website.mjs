@@ -1,6 +1,6 @@
 import {appendRbSummary} from './rb-weekly.mjs';
 import {SNAPSHOT_URL, validateSnapshot} from './snapshot-contract.mjs';
-import {buildDailyTrendRows, dailyTrendFor, formatDailyFpg} from './daily-trends.mjs';
+import {buildDailyTrendRows, dailyTrendFor, formatDailyFpg, selectDailyHitterActions} from './daily-trends.mjs';
 
 let snapshot = null;
 
@@ -225,14 +225,51 @@ function appendRatingCell(tr, label='Not rated', tone='gray') {
   tr.append(td);
 }
 
-function renderDailyActions() {
+function actionCard(title, value, detail) {
+  const card = document.createElement('div');
+  card.className = 'actioncard';
+  const strong = document.createElement('strong');
+  strong.textContent = title;
+  const main = document.createElement('div');
+  main.textContent = value;
+  const sub = document.createElement('span');
+  sub.className = 'subtle';
+  sub.textContent = detail;
+  card.append(strong, main, sub);
+  return card;
+}
+
+function renderDailyActions(hitters, pitchers, pool, schedule) {
   const host = document.getElementById('daily-actions');
   if (!host) return;
   host.replaceChildren();
-  const card = document.createElement('div');
-  card.className = 'actioncard';
-  card.innerHTML = '<strong>No verified action calls yet</strong><span class="subtle">Opponent data is live. Action calls will return when matchup ratings and recent-form feeds are reconnected.</span>';
-  host.append(card);
+
+  const actions = selectDailyHitterActions(hitters, pool);
+  if (actions.hot) {
+    host.append(actionCard('Hot Hitter', actions.hot.name, `${formatDailyFpg(actions.hot.metrics.ppg7)} FP/G over last 7 days`));
+  }
+  if (actions.rising) {
+    host.append(actionCard('Rising Hitter', actions.rising.name, `${formatDailyFpg(actions.rising.metrics.ppg7)} FP/G vs ${formatDailyFpg(actions.rising.metrics.ppg30)} over 30 days`));
+  }
+  if (actions.cold) {
+    host.append(actionCard('Cold Hitter', actions.cold.name, `${formatDailyFpg(actions.cold.metrics.ppg7)} FP/G over last 7 days`));
+  }
+
+  const projected = pitchers.filter(pitcher =>
+    isStarter(pitcher) && todayGames(pitcher, schedule).some(game => starterMatches(pitcher.Player, game))
+  );
+  host.append(actionCard(
+    'Projected SP Today',
+    projected.length ? projected.map(p => p.Player).join(', ') : 'None',
+    projected.length ? `${projected.length} verified probable start${projected.length === 1 ? '' : 's'}` : 'No Desert Rats probable start on today’s verified MLB schedule'
+  ));
+
+  const offDays = hitters.filter(hitter => todayGames(hitter, schedule).length === 0).length;
+  host.append(actionCard('Hitter Off Days', `${offDays} of ${hitters.length}`, 'Based on today’s verified MLB schedule'));
+
+  if (!host.children.length) {
+    host.append(actionCard('Today’s Actions', '—', 'Verified inputs unavailable'));
+  }
 }
 
 function renderDailyMatchups(hitters, schedule, pool) {
@@ -307,7 +344,7 @@ function renderCore(data) {
   const hitters = roster.filter(p => !p.pitcher);
   const pitchers = roster.filter(p => p.pitcher);
 
-  renderDailyActions();
+  renderDailyActions(hitters, pitchers, data.pool, data.weekly_schedule);
   renderDailyMatchups(hitters, data.weekly_schedule, data.pool);
   renderDailyTrends(hitters, data.pool);
   renderPitcherRecentGames(pitchers, data.pitcher_recent_games);
