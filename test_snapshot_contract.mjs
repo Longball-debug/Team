@@ -9,6 +9,11 @@ export function fixture() {
 test('accepts complete fresh publication and strips unknown fields',()=>{
  const s=fixture();s.secret='SECRET';assert.equal(validateSnapshot(s).secret,undefined);
 });
+test('exposes verified 7D, 14D, and 30D FP/G fields from the shared pool',()=>{
+ const s=fixture();s.pool=[{fantraxId:'hitter-1',name:'Corey Seager',ppg7:4,ppg14:2.67,ppg30:3.76,games7:3}];
+ const player=validateSnapshot(s).pool[0];
+ assert.deepEqual([player.ppg7,player.ppg14,player.ppg30,player.games7],[4,2.67,3.76,3]);
+});
 test('exposes only validated Statcast fields',()=>{
  const s=fixture();
  s.pool=[{fantraxId:'hitter-1',name:'Aaron Judge',positions:'OF',statcast2026:{savantId:'592450',exitVelocity:94,hardHitPct:57.5,barrelPct:20.9,xba:.258,xslg:.569,xwoba:.396,sprintSpeed:29}}];

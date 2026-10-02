@@ -1,5 +1,6 @@
 import {appendRbSummary} from './rb-weekly.mjs';
 import {SNAPSHOT_URL, validateSnapshot} from './snapshot-contract.mjs';
+import {buildDailyTrendRows, formatDailyFpg} from './daily-trends.mjs';
 
 let snapshot = null;
 
@@ -77,6 +78,7 @@ function rosterRecords(data) {
   return data.players
     .filter(p => p['Fantasy Team ID'] === team['Team ID'])
     .map(p => ({
+      'Player ID': p['Player ID'],
       Player: p.Player,
       MLB: p['MLB Team'],
       Positions: formatPositions(p.Positions),
@@ -250,17 +252,17 @@ function renderDailyMatchups(hitters, schedule) {
   }
 }
 
-function renderDailyTrends(hitters) {
+function renderDailyTrends(hitters, pool) {
   const body = document.getElementById('daily-trends');
   if (!body) return;
   body.replaceChildren();
-  for (const player of hitters) {
+  for (const player of buildDailyTrendRows(hitters, pool)) {
     const tr = document.createElement('tr');
-    tr.append(cell(player.Player));
-    tr.append(cell('Not verified'));
-    tr.append(cell('Not verified'));
-    tr.append(cell('Not verified'));
-    tr.append(cell('Not verified'));
+    tr.append(cell(player.name));
+    tr.append(cell(formatDailyFpg(player.metrics?.ppg7)));
+    tr.append(cell(formatDailyFpg(player.metrics?.ppg14)));
+    tr.append(cell(formatDailyFpg(player.metrics?.ppg30)));
+    appendRatingCell(tr, player.trend.label, player.trend.tone);
     body.append(tr);
   }
 }
@@ -305,7 +307,7 @@ function renderCore(data) {
 
   renderDailyActions();
   renderDailyMatchups(hitters, data.weekly_schedule);
-  renderDailyTrends(hitters);
+  renderDailyTrends(hitters, data.pool);
   renderPitcherRecentGames(pitchers, data.pitcher_recent_games);
 
   updateWeeklyHeaders(data.weekly_schedule);
