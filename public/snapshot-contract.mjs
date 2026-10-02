@@ -20,6 +20,14 @@ function cleanPool(pool) {
     points30:Number.isFinite(p.points30) ? p.points30 : null,
     games30:Number.isFinite(p.games30) ? p.games30 : null,
     ppg30:Number.isFinite(p.ppg30) ? p.ppg30 : null,
+    statcast2026:p.statcast2026 && typeof p.statcast2026 === 'object' ? {
+      exitVelocity:Number.isFinite(p.statcast2026.exitVelocity) ? p.statcast2026.exitVelocity : null,
+      hardHitPct:Number.isFinite(p.statcast2026.hardHitPct) ? p.statcast2026.hardHitPct : null,
+      barrelPct:Number.isFinite(p.statcast2026.barrelPct) ? p.statcast2026.barrelPct : null,
+      xwoba:Number.isFinite(p.statcast2026.xwoba) ? p.statcast2026.xwoba : null,
+      xslg:Number.isFinite(p.statcast2026.xslg) ? p.statcast2026.xslg : null,
+      sprintSpeed:Number.isFinite(p.statcast2026.sprintSpeed) ? p.statcast2026.sprintSpeed : null,
+    } : null,
     seasonMetrics:p.seasonMetrics && typeof p.seasonMetrics === 'object' ? {...p.seasonMetrics} : null,
   }));
 }
