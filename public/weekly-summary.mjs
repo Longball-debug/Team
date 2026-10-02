@@ -68,6 +68,11 @@ function ensureWeeklySummary() {
   opp.innerHTML = '<h2>Opponent Week Snapshot</h2><div class="tablewrap"><table><thead><tr><th>Day</th><th>Hitter Games</th><th>MLB Opponents Faced</th><th>Probable Opposing SPs</th><th>Our Projected SP Starts</th></tr></thead><tbody id="weekly-opponent-snapshot"></tbody></table></div>';
   glance.insertAdjacentElement('afterend', opp);
 
+  const view = document.createElement('div');
+  view.className = 'section';
+  view.innerHTML = '<h2>Weekly Opponent View</h2><h3>Hitter Opponents</h3><div class="tablewrap"><table><thead><tr><th>Hitter</th><th>Scheduled MLB Opponents</th></tr></thead><tbody id="weekly-opponent-hitters"></tbody></table></div><h3>Projected SP Starts</h3><div class="tablewrap"><table><thead><tr><th>Starter</th><th>Scheduled Start / Opponent</th></tr></thead><tbody id="weekly-opponent-starters"></tbody></table></div><div class="note" style="margin-top:8px">The snapshot does not identify the current fantasy matchup, so this view uses only verified Desert Rats roster and MLB schedule data.</div>';
+  opp.insertAdjacentElement('afterend', view);
+
   const teams = document.createElement('div');
   teams.className = 'section';
   teams.innerHTML = '<h2>Roster Schedule by MLB Team</h2><div class="tablewrap"><table><thead><tr><th>MLB Team</th><th>Desert Rats Hitters</th><th>Games</th><th>Opponents</th><th>Home / Road</th><th>Probable SP Coverage</th></tr></thead><tbody id="weekly-team-snapshot"></tbody></table></div><div class="note" style="margin-top:8px">Opponent quality is not color-graded until a verified strength source is connected. This section shows the verified schedule only.</div>';
@@ -149,15 +154,73 @@ function renderTeamRows(body, hitters, schedule, days) {
   }
 }
 
+function renderOpponentView(hitterBody, starterBody, hitters, starters, schedule, days) {
+  hitterBody.replaceChildren();
+  starterBody.replaceChildren();
+
+  for (const hitter of hitters) {
+    const matchups = [];
+    for (const day of days) {
+      for (const game of gamesFor(hitter, schedule, day)) {
+        if (!game.opponent) continue;
+        const date = new Date(`${day}T12:00:00`).toLocaleDateString([], {weekday:'short', month:'numeric', day:'numeric'});
+        const side = game.home_away === 'away' ? '@' : 'vs';
+        matchups.push(`${date} ${side} ${game.opponent}`);
+      }
+    }
+    const tr = document.createElement('tr');
+    for (const value of [hitter.Player, matchups.length ? matchups.join(' · ') : 'No scheduled MLB games']) {
+      const td = document.createElement('td');
+      td.textContent = value;
+      tr.append(td);
+    }
+    hitterBody.append(tr);
+  }
+
+  let startCount = 0;
+  for (const pitcher of starters) {
+    for (const day of days) {
+      const games = gamesFor(pitcher, schedule, day).filter(g => normalizedName(g.team_probable_pitcher) === normalizedName(pitcher.Player));
+      for (const game of games) {
+        if (!game.opponent) continue;
+        const date = new Date(`${day}T12:00:00`).toLocaleDateString([], {weekday:'short', month:'numeric', day:'numeric'});
+        const side = game.home_away === 'away' ? '@' : 'vs';
+        const tr = document.createElement('tr');
+        for (const value of [pitcher.Player, `${date} ${side} ${game.opponent}`]) {
+          const td = document.createElement('td');
+          td.textContent = value;
+          tr.append(td);
+        }
+        starterBody.append(tr);
+        startCount += 1;
+      }
+    }
+  }
+
+  if (!startCount) {
+    const tr = document.createElement('tr');
+    const td = document.createElement('td');
+    td.colSpan = 2;
+    td.className = 'empty';
+    td.textContent = 'No verified projected SP starts in the weekly schedule.';
+    tr.append(td);
+    starterBody.append(tr);
+  }
+}
+
 function renderSummary(data) {
   ensureWeeklySummary();
   const host = document.getElementById('weekly-glance');
   const body = document.getElementById('weekly-opponent-snapshot');
+  const opponentHitters = document.getElementById('weekly-opponent-hitters');
+  const opponentStarters = document.getElementById('weekly-opponent-starters');
   const teamBody = document.getElementById('weekly-team-snapshot');
-  if (!host || !body || !teamBody) return;
+  if (!host || !body || !teamBody || !opponentHitters || !opponentStarters) return;
   host.replaceChildren();
   body.replaceChildren();
   teamBody.replaceChildren();
+  opponentHitters.replaceChildren();
+  opponentStarters.replaceChildren();
 
   const schedule = data.weekly_schedule;
   const team = data.teams.find(t => t.Team.trim().toLowerCase() === 'desert rats');
@@ -168,10 +231,10 @@ function renderSummary(data) {
 
   if (days.length !== 7) {
     addMetric(host, 'Schedule', 'Unavailable', 'Verified weekly MLB schedule is missing.');
-    for (const target of [body, teamBody]) {
+    for (const target of [body, teamBody, opponentHitters, opponentStarters]) {
       const tr = document.createElement('tr');
       const td = document.createElement('td');
-      td.colSpan = target === body ? 5 : 6;
+      td.colSpan = target === body ? 5 : target === teamBody ? 6 : 2;
       td.className = 'empty';
       td.textContent = 'Verified weekly snapshot unavailable.';
       tr.append(td);
@@ -223,6 +286,7 @@ function renderSummary(data) {
 
   for (const day of days) renderDayRow(body, day, hitters, starters, schedule);
   renderTeamRows(teamBody, hitters, schedule, days);
+  renderOpponentView(opponentHitters, opponentStarters, hitters, starters, schedule, days);
 }
 
 async function load() {
