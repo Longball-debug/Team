@@ -1,7 +1,7 @@
 import {appendRbSummary} from './rb-weekly.mjs';
 import {SNAPSHOT_URL, validateSnapshot} from './snapshot-contract.mjs';
 import {buildDailyTrendRows, dailyTrendFor, formatDailyFpg, selectDailyHitterActions} from './daily-trends.mjs';
-import {ficDailyRating} from './daily-matchups.mjs';
+import {ficDailyRating, pitcherHandFromFic} from './daily-matchups.mjs';
 
 let snapshot = null;
 
@@ -286,8 +286,9 @@ function renderDailyMatchups(hitters, schedule, pool, ficMatchups) {
     tr.append(cell(player.Player));
     tr.append(cell(games.length ? games.map(g => `${g.home_away === 'away' ? '@' : 'vs '}${g.opponent}`).join(' / ') : 'Off day'));
     tr.append(cell(games.length ? games.map(g => g.opponent_probable_pitcher || 'Not verified').join(' / ') : '—'));
-    tr.append(cell(games.length ? 'Not verified' : '—'));
     const ficItem = ficMatchups?.status === 'verified' ? ficMatchups.players?.[player.Player]?.[phoenixDateString()] : null;
+    const verifiedHand = pitcherHandFromFic(ficItem);
+    tr.append(cell(games.length ? (verifiedHand || 'Not verified') : '—'));
     const matchupRating = games.length ? ficDailyRating(ficItem) : {label:'—', tone:'gray', detail:null};
     appendRatingCell(tr, matchupRating.label, matchupRating.tone, matchupRating.detail || '');
     appendRatingCell(tr, trend.label, trend.tone);

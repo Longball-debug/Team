@@ -45,3 +45,9 @@ export function pitcherListDailyRating(pitcherList, day, playerName) {
     detail:`Pitcher List public SP Streamer ranking: #${item.rank}, ${item.tier || 'Unverified Tier'}${item.matchup ? `, ${item.matchup}` : ''}.`,
   };
 }
+
+export function pitcherHandFromFic(item) {
+  const text = String(item?.pitcher || '');
+  const match = text.match(/\(([LR])\)(?:\s|$)/i);
+  return match ? `${match[1].toUpperCase()}HP` : null;
+}
