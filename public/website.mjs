@@ -227,6 +227,27 @@ function appendRatingCell(tr, label='Not rated', tone='gray', title='') {
   tr.append(td);
 }
 
+function dailyHitterMatchupCell(games, ficItem) {
+  const td = document.createElement('td');
+  td.className = 'daily-matchup';
+  if (!games.length) {
+    td.textContent = 'Off day';
+    return td;
+  }
+  const verifiedHand = games.length === 1 ? pitcherHandFromFic(ficItem) : null;
+  for (const game of games) {
+    const line = document.createElement('div');
+    const top = document.createElement('strong');
+    top.textContent = `${game.home_away === 'away' ? '@' : 'vs '}${game.opponent || '?'}`;
+    const detail = document.createElement('small');
+    const starter = game.opponent_probable_pitcher || 'Probable SP not verified';
+    detail.textContent = verifiedHand ? `${starter} · ${verifiedHand}` : starter;
+    line.append(top, detail);
+    td.append(line);
+  }
+  return td;
+}
+
 function actionCard(title, value, detail) {
   const card = document.createElement('div');
   card.className = 'actioncard';
@@ -284,11 +305,8 @@ function renderDailyMatchups(hitters, schedule, pool, ficMatchups) {
     const trend = dailyTrendFor(poolById.get(player['Player ID']));
     const tr = document.createElement('tr');
     tr.append(cell(player.Player));
-    tr.append(cell(games.length ? games.map(g => `${g.home_away === 'away' ? '@' : 'vs '}${g.opponent}`).join(' / ') : 'Off day'));
-    tr.append(cell(games.length ? games.map(g => g.opponent_probable_pitcher || 'Not verified').join(' / ') : '—'));
     const ficItem = ficMatchups?.status === 'verified' ? ficMatchups.players?.[player.Player]?.[phoenixDateString()] : null;
-    const verifiedHand = pitcherHandFromFic(ficItem);
-    tr.append(cell(games.length ? (verifiedHand || 'Not verified') : '—'));
+    tr.append(dailyHitterMatchupCell(games, ficItem));
     const matchupRating = games.length ? ficDailyRating(ficItem) : {label:'—', tone:'gray', detail:null};
     appendRatingCell(tr, matchupRating.label, matchupRating.tone, matchupRating.detail || '');
     appendRatingCell(tr, trend.label, trend.tone);

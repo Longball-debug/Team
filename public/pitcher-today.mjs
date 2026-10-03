@@ -97,6 +97,18 @@ function ratingCell(label, tone='gray', title='') {
   return cell;
 }
 
+function todayCell(games, role) {
+  const cell = document.createElement('td');
+  cell.className = 'daily-matchup';
+  const top = document.createElement('strong');
+  top.textContent = opponentLabel(games);
+  const detail = document.createElement('small');
+  detail.className = 'daily-role';
+  detail.textContent = role;
+  cell.append(top, detail);
+  return cell;
+}
+
 function ensureSection() {
   if (document.getElementById('daily-pitcher-matchups')) return;
   const hitterBody = document.getElementById('daily-matchups');
@@ -104,7 +116,7 @@ function ensureSection() {
   if (!hitterSection) return;
   const section = document.createElement('div');
   section.className = 'section';
-  section.innerHTML = '<h2>Pitchers — Today\'s Matchups</h2><div class="tablewrap"><table><thead><tr><th>Player</th><th>Pos</th><th>Opponent</th><th>Today Role</th><th>Matchup Rating</th><th>Last 3 FP</th><th>Trend</th></tr></thead><tbody id="daily-pitcher-matchups"></tbody></table></div><div class="note" style="margin-top:8px">SP starts are matched to MLB probable starters. Verified Pitcher List rankings are shown when available for today’s starter. RP/P rows stay ungraded. Trend is derived from verified last-three game logs.</div>';
+  section.innerHTML = '<h2>Pitchers — Today\'s Matchups</h2><div class="tablewrap"><table class="daily-compact"><thead><tr><th>Player</th><th>Today</th><th>PL Rating</th><th>Last 3 FP</th><th>Trend</th></tr></thead><tbody id="daily-pitcher-matchups"></tbody></table></div><div class="note" style="margin-top:8px">SP starts are matched to MLB probable starters. Verified Pitcher List rankings appear for today’s starter; RP/P rows stay ungraded.</div>';
   hitterSection.insertAdjacentElement('afterend', section);
 }
 
@@ -127,10 +139,8 @@ async function render() {
       const trend = trendFor(recent);
       const row = document.createElement('tr');
       row.append(td(player.Player));
-      row.append(td(normalizePositions(player.Positions).join('/') || 'P'));
-      row.append(td(opponentLabel(games)));
       const role = roleLabel(player, games);
-      row.append(td(role));
+      row.append(todayCell(games, role));
       const pl = role === 'SP — START' ? pitcherListDailyRating(data.pitcher_list, phoenixDateString(), player.Player) : null;
       row.append(ratingCell(pl?.label || (games.length ? 'Not rated' : '—'), pl?.tone || 'gray', pl?.detail || ''));
       row.append(td(recent.length ? recent.map(g => Number(g.fantasy_points).toFixed(1)).join(' / ') : 'Not verified'));
@@ -141,7 +151,7 @@ async function render() {
     body.replaceChildren();
     const row = document.createElement('tr');
     const cell = document.createElement('td');
-    cell.colSpan = 7;
+    cell.colSpan = 5;
     cell.className = 'empty';
     cell.textContent = 'Current pitcher matchup data unavailable.';
     row.append(cell);
