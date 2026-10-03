@@ -1,10 +1,10 @@
-"""Attach Fantasy Info Central batter-vs-pitcher context for Desert Rats hitters.
+"""Attach Fantasy Info Central batter-vs-pitcher context for roster and free-agent hitters.
 
-This collector is intentionally conservative:
-- it only keeps Desert Rats hitters from the current snapshot;
-- it records factual BvP metrics, not a start/sit recommendation;
-- it treats fewer than 5 PA as insufficient sample, matching FIC's own guidance;
-- source failures never fabricate data and do not block the core Fantrax refresh.
+Conservative rules:
+- factual BvP context only; no fabricated start/sit calls;
+- fewer than 5 PA is insufficient sample, matching FIC guidance;
+- future pages are requested only for today through the next 14 days;
+- source failures do not block the core Fantrax refresh.
 """
 from __future__ import annotations
 
@@ -13,12 +13,15 @@ import html
 import json
 import re
 import urllib.request
+from datetime import datetime, timedelta
 from html.parser import HTMLParser
 from pathlib import Path
 from typing import Any
+from zoneinfo import ZoneInfo
 
 BASE_URL = "https://www.fantasyinfocentral.com/mlb/daily-matchups?date={date}"
 USER_AGENT = "FantasyGM2027/1.0 (+personal fantasy-baseball research)"
+ARIZONA = ZoneInfo("America/Phoenix")
 
 
 class _TableParser(HTMLParser):
@@ -71,7 +74,6 @@ def _abbr_key(full_name: str) -> str:
 
 
 def _abbr_from_cell(text: str) -> str | None:
-    # Examples: "A. Bregman, 3B (R) ..." or "M. Boyd (L) ERA ..."
     m = re.match(r"\s*([A-Za-z])\.\s+([^,(]+)", text or "")
     if not m:
         return None
@@ -148,24 +150,58 @@ def _fetch_day(day: str) -> str:
         return response.read().decode("utf-8", errors="replace")
 
 
-def attach(snapshot: dict[str, Any]) -> dict[str, Any]:
-    schedule = snapshot.get("weekly_schedule") or {}
-    days = schedule.get("days") or []
+def _positions(value: Any) -> set[str]:
+    return {p.strip().upper() for p in re.split(r"[/,|]", str(value or "")) if p.strip()}
+
+
+def _is_hitter(value: Any) -> bool:
+    return not (_positions(value) & {"P", "SP", "RP"})
+
+
+def _is_free_agent(value: Any) -> bool:
+    text = str(value or "").strip().lower()
+    return text == "fa" or "free" in text
+
+
+def _target_hitters(snapshot: dict[str, Any]) -> list[str]:
+    names: set[str] = set()
+
     teams = snapshot.get("teams") or []
     players = snapshot.get("players") or []
     rats = next((t for t in teams if str(t.get("Team", "")).strip().lower() == "desert rats"), None)
     team_id = rats.get("Team ID") if rats else None
-
-    hitters = []
     for player in players:
-        if player.get("Fantasy Team ID") != team_id:
-            continue
-        positions = {p.strip().upper() for p in re.split(r"[/,|]", str(player.get("Positions") or "")) if p.strip()}
-        if positions & {"P", "SP", "RP"}:
+        if player.get("Fantasy Team ID") != team_id or not _is_hitter(player.get("Positions")):
             continue
         name = str(player.get("Player") or "").strip()
         if name:
-            hitters.append(name)
+            names.add(name)
+
+    for player in snapshot.get("pool") or []:
+        if not _is_free_agent(player.get("availability")) or not _is_hitter(player.get("positions")):
+            continue
+        name = str(player.get("name") or "").strip()
+        if name:
+            names.add(name)
+
+    return sorted(names)
+
+
+def _lookahead_days(snapshot: dict[str, Any]) -> list[str]:
+    candidates: set[str] = set()
+    current = snapshot.get("weekly_schedule") or {}
+    candidates.update(d for d in current.get("days") or [] if isinstance(d, str))
+    for week in (snapshot.get("fa_lookahead") or {}).get("weeks") or []:
+        candidates.update(d for d in week.get("days") or [] if isinstance(d, str))
+
+    today = datetime.now(ARIZONA).date()
+    end = today + timedelta(days=14)
+    return sorted(d for d in candidates if today.isoformat() <= d <= end.isoformat())
+
+
+def attach(snapshot: dict[str, Any]) -> dict[str, Any]:
+    hitters = _target_hitters(snapshot)
+    days = _lookahead_days(snapshot)
 
     key_to_names: dict[str, list[str]] = {}
     for name in hitters:
@@ -183,7 +219,7 @@ def attach(snapshot: dict[str, Any]) -> dict[str, Any]:
     for day in days:
         try:
             rows = parse_fic_html(_fetch_day(day))
-        except Exception as exc:  # source failure must not poison the core snapshot
+        except Exception as exc:
             result["days"][day] = {"status": "unavailable", "reason": type(exc).__name__}
             continue
 
@@ -195,7 +231,7 @@ def attach(snapshot: dict[str, Any]) -> dict[str, Any]:
             name = names[0]
             result["players"].setdefault(name, {})[day] = {k: v for k, v in row.items() if k != "batter_key"}
             matched += 1
-        result["days"][day] = {"status": "verified", "matched_desert_rats": matched}
+        result["days"][day] = {"status": "verified", "matched_target_hitters": matched}
 
     if not any(v.get("status") == "verified" for v in result["days"].values()):
         result["status"] = "unavailable"
@@ -213,7 +249,7 @@ def main() -> None:
     tmp.write_text(json.dumps(data, ensure_ascii=False, allow_nan=False) + "\n", encoding="utf-8")
     tmp.replace(args.snapshot)
     status = data["fic_matchups"]["status"]
-    print(f"FIC weekly matchup context: {status}")
+    print(f"FIC roster/free-agent matchup context: {status}")
 
 
 if __name__ == "__main__":

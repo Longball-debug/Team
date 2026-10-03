@@ -1,7 +1,14 @@
 import './player-lab.mjs';
+import {ficDailyRating} from './daily-matchups.mjs';
 import {SNAPSHOT_URL, validateSnapshot} from './snapshot-contract.mjs';
 
 let data = null;
+
+const TEAM_ALIASES = {
+  AZ:'ARI', ARI:'ARI', CWS:'CHW', CHW:'CHW', KC:'KCR', KCR:'KCR',
+  SD:'SDP', SDP:'SDP', SF:'SFG', SFG:'SFG', TB:'TBR', TBR:'TBR',
+  WSH:'WSN', WSN:'WSN', OAK:'ATH', ATH:'ATH'
+};
 
 function normalizePositions(value) {
   if (Array.isArray(value)) return value.map(v => String(v).trim().toUpperCase()).filter(Boolean);
@@ -86,7 +93,7 @@ function ensureStatColumns() {
   const table = body?.closest('table');
   const row = table?.querySelector('thead tr');
   if (!row) return;
-  row.innerHTML = '<th>Player</th><th>MLB</th><th>Positions</th><th>Availability</th><th>14D Points</th><th>14D PPG</th>';
+  row.innerHTML = '<th>Player</th><th>MLB</th><th>Pos</th><th>14D Pts</th><th>14D PPG</th><th>Trend</th><th>Next Wk</th><th>Wk +2</th><th>FIC</th>';
   const wrap = table.closest('.tablewrap');
   if (wrap && !document.getElementById('fa-14d-note')) {
     const note = document.createElement('div');
@@ -101,6 +108,84 @@ function fmt(value, digits=1) {
   return Number.isFinite(value) ? Number(value).toFixed(digits) : '—';
 }
 
+function trend(player) {
+  if (!Number.isFinite(player.ppg7) || !Number.isFinite(player.ppg30) || Number(player.games7) < 2) {
+    return {label:'Not enough data', tone:'gray'};
+  }
+  if (player.ppg30 === 0) return {label:player.ppg7 > 0 ? 'Rising' : 'Steady', tone:player.ppg7 > 0 ? 'green' : 'gray'};
+  const change = (player.ppg7 - player.ppg30) / Math.abs(player.ppg30);
+  if (change >= 0.15) return {label:'Rising', tone:'green'};
+  if (change <= -0.15) return {label:'Falling', tone:'red'};
+  return {label:'Steady', tone:'yellow'};
+}
+
+function teamKey(team, schedule) {
+  if (!team || !schedule?.teams) return null;
+  const raw = String(team).trim().toUpperCase();
+  if (schedule.teams[raw]) return raw;
+  const alias = TEAM_ALIASES[raw];
+  return alias && schedule.teams[alias] ? alias : null;
+}
+
+function scheduleSummary(player, week) {
+  if (!week || !Array.isArray(week.days)) return {label:'Not verified', title:''};
+  const key = teamKey(player.mlbTeam, week);
+  if (!key) return {label:'Not verified', title:''};
+  const games = [];
+  for (const day of week.days) {
+    for (const game of week.teams?.[key]?.[day] || []) {
+      games.push({...game, day});
+    }
+  }
+  const opponents = [];
+  for (const game of games) {
+    const label = `${game.home_away === 'away' ? '@' : ''}${game.opponent || '?'}`;
+    if (!opponents.includes(label)) opponents.push(label);
+  }
+  const dateLabel = week.week_start && week.week_end ? `${week.week_start}–${week.week_end}` : '';
+  return {
+    label:`${games.length} G${opponents.length ? ` · ${opponents.join(', ')}` : ''}`,
+    title:`${dateLabel}. Verified MLB schedule; opponent-strength grade not yet attached.`,
+  };
+}
+
+function ficSummary(player, weeks) {
+  if (isPitcher(player)) return {label:'—', tone:'gray', title:'FIC BvP applies to hitters.'};
+  if (data?.fic_matchups?.status !== 'verified') return {label:'Not verified', tone:'gray', title:'FIC matchup feed unavailable.'};
+  const dates = new Set((weeks || []).flatMap(week => Array.isArray(week?.days) ? week.days : []));
+  const items = Object.entries(data.fic_matchups.players?.[player.name] || {})
+    .filter(([day]) => dates.has(day))
+    .map(([, item]) => ficDailyRating(item))
+    .filter(item => item.label !== 'Not rated');
+  if (!items.length) return {label:'Not rated', tone:'gray', title:'No verified FIC BvP sample for the look-ahead window.'};
+  const plus = items.filter(item => item.tone === 'green').length;
+  const neutral = items.filter(item => item.tone === 'yellow').length;
+  const minus = items.filter(item => item.tone === 'red').length;
+  const tone = plus > minus ? 'green' : minus > plus ? 'red' : 'yellow';
+  return {
+    label:`+${plus} / =${neutral} / −${minus}`,
+    tone,
+    title:`Verified FIC BvP samples across next two weeks: ${plus} favorable, ${neutral} neutral, ${minus} tough.`,
+  };
+}
+
+function pillCell(label, tone='gray', title='') {
+  const td = document.createElement('td');
+  const span = document.createElement('span');
+  span.className = `rating ${tone}`;
+  span.textContent = label;
+  if (title) span.title = title;
+  td.append(span);
+  return td;
+}
+
+function textCell(value, title='') {
+  const td = document.createElement('td');
+  td.textContent = value || '—';
+  if (title) td.title = title;
+  return td;
+}
+
 function render() {
   if (!data) return;
   ensureStatColumns();
@@ -110,6 +195,7 @@ function render() {
   const type = document.getElementById('fa-type')?.value || 'all';
   const position = document.getElementById('fa-position')?.value || 'all';
   const activity = document.getElementById('fa-activity')?.value || 'recent';
+  const weeks = Array.isArray(data.fa_lookahead?.weeks) ? data.fa_lookahead.weeks.slice(0, 2) : [];
 
   const rows = (data.pool || []).filter(player => {
     if (!isFreeAgent(player)) return false;
@@ -136,17 +222,26 @@ function render() {
   body.replaceChildren();
   for (const player of rows) {
     const tr = document.createElement('tr');
-    for (const value of [player.name, player.mlbTeam, displayPositions(player.positions), player.availability, fmt(player.points14, 1), fmt(player.ppg14, 2)]) {
-      const td = document.createElement('td');
-      td.textContent = value || 'Unavailable';
-      tr.append(td);
+    tr.append(textCell(player.name));
+    tr.append(textCell(player.mlbTeam));
+    tr.append(textCell(displayPositions(player.positions)));
+    tr.append(textCell(fmt(player.points14, 1)));
+    tr.append(textCell(fmt(player.ppg14, 2)));
+    const t = trend(player);
+    tr.append(pillCell(t.label, t.tone));
+    for (const week of [weeks[0], weeks[1]]) {
+      const summary = scheduleSummary(player, week);
+      tr.append(textCell(summary.label, summary.title));
     }
+    const fic = ficSummary(player, weeks);
+    tr.append(pillCell(fic.label, fic.tone, fic.title));
     body.append(tr);
   }
+
   if (!rows.length) {
     const tr = document.createElement('tr');
     const td = document.createElement('td');
-    td.colSpan = 6;
+    td.colSpan = 9;
     td.className = 'empty';
     td.textContent = 'No verified matching free agents.';
     tr.append(td);
@@ -157,9 +252,11 @@ function render() {
   if (note) {
     const recent = data.recent_14d;
     const activityLabel = activity === 'recent' ? 'Showing free agents with verified recent MLB stats.' : activity === 'nostats' ? 'Showing free agents without verified recent MLB stats.' : 'Showing all free agents; players with verified recent stats are listed first.';
-    note.textContent = recent?.start_date && recent?.end_date
-      ? `${activityLabel} Sorted by 14-day fantasy points, high to low. Window: ${recent.start_date} through ${recent.end_date}. ${recent.source || ''}`
-      : '14-day fantasy-point feed is not verified in the current snapshot.';
+    const dates = weeks.length === 2 ? ` Look-ahead: ${weeks[0].week_start} through ${weeks[1].week_end}.` : ' Next-two-week schedule is not verified in the current snapshot.';
+    const source = recent?.start_date && recent?.end_date
+      ? ` Sorted by 14-day fantasy points, high to low. Trend compares verified 7D vs 30D FP/G. 14D window: ${recent.start_date} through ${recent.end_date}.`
+      : ' 14-day fantasy-point feed is not verified in the current snapshot.';
+    note.textContent = `${activityLabel}${source}${dates} Opponents come from MLB Stats API; FIC is shown only when verified. Baseball Monster schedule-ease scoring is not yet imported, so schedule toughness is never guessed.`;
   }
 }
 
