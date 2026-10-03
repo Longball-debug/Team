@@ -10,6 +10,8 @@ on:
       - 'shared_snapshot.py'
       - 'mlb_schedule.py'
       - 'add_weekly_schedule.py'
+      - 'add_baseballmonster_ease.py'
+      - 'test_baseballmonster_ease.py'
       - 'add_fic_matchups.py'
       - 'test_fic_matchups.py'
       - 'add_pitcherlist.py'
@@ -88,6 +90,9 @@ jobs:
 
       - name: Attach verified MLB weekly schedule
         run: python add_weekly_schedule.py --snapshot public/fantasygm.json
+
+      - name: Attach Baseball Monster opponent Ease rankings
+        run: python add_baseballmonster_ease.py --snapshot public/fantasygm.json
 
       - name: Attach Fantasy Info Central hitter matchup context
         run: python add_fic_matchups.py --snapshot public/fantasygm.json

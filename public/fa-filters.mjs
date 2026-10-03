@@ -128,9 +128,9 @@ function teamKey(team, schedule) {
 }
 
 function scheduleSummary(player, week) {
-  if (!week || !Array.isArray(week.days)) return {label:'Not verified', title:''};
+  if (!week || !Array.isArray(week.days)) return {label:'Not verified', tone:'gray', title:''};
   const key = teamKey(player.mlbTeam, week);
-  if (!key) return {label:'Not verified', title:''};
+  if (!key) return {label:'Not verified', tone:'gray', title:''};
   const games = [];
   for (const day of week.days) {
     for (const game of week.teams?.[key]?.[day] || []) {
@@ -143,9 +143,23 @@ function scheduleSummary(player, week) {
     if (!opponents.includes(label)) opponents.push(label);
   }
   const dateLabel = week.week_start && week.week_end ? `${week.week_start}–${week.week_end}` : '';
+  const bm = data?.baseball_monster_ease;
+  const side = isPitcher(player) ? bm?.pitchers : bm?.hitters;
+  const ranks = games.map(game => side?.[game.opponent]?.rank).filter(Number.isInteger);
+  if (bm?.status === 'verified' && ranks.length === games.length && games.length) {
+    const avgRank = ranks.reduce((sum, rank) => sum + rank, 0) / ranks.length;
+    const tone = avgRank <= 10 ? 'green' : avgRank <= 20 ? 'yellow' : 'red';
+    const grade = tone === 'green' ? 'EASY' : tone === 'red' ? 'TOUGH' : 'AVG';
+    return {
+      label:`${games.length} G · ${grade}`,
+      tone,
+      title:`${dateLabel}. ${opponents.join(', ')}. Baseball Monster opponent Ease average rank #${avgRank.toFixed(1)} of 30 (1=easiest).`,
+    };
+  }
   return {
     label:`${games.length} G${opponents.length ? ` · ${opponents.join(', ')}` : ''}`,
-    title:`${dateLabel}. Verified MLB schedule; opponent-strength grade not yet attached.`,
+    tone:'gray',
+    title:`${dateLabel}. Verified MLB schedule; Baseball Monster Ease not verified for every opponent.`,
   };
 }
 
@@ -231,7 +245,7 @@ function render() {
     tr.append(pillCell(t.label, t.tone));
     for (const week of [weeks[0], weeks[1]]) {
       const summary = scheduleSummary(player, week);
-      tr.append(textCell(summary.label, summary.title));
+      tr.append(pillCell(summary.label, summary.tone, summary.title));
     }
     const fic = ficSummary(player, weeks);
     tr.append(pillCell(fic.label, fic.tone, fic.title));
@@ -256,7 +270,7 @@ function render() {
     const source = recent?.start_date && recent?.end_date
       ? ` Sorted by 14-day fantasy points, high to low. Trend compares verified 7D vs 30D FP/G. 14D window: ${recent.start_date} through ${recent.end_date}.`
       : ' 14-day fantasy-point feed is not verified in the current snapshot.';
-    note.textContent = `${activityLabel}${source}${dates} Opponents come from MLB Stats API; FIC is shown only when verified. Baseball Monster schedule-ease scoring is not yet imported, so schedule toughness is never guessed.`;
+    note.textContent = `${activityLabel}${source}${dates} Opponents come from MLB Stats API; schedule colors use verified Baseball Monster Ease ranks when available (top 10 easiest = green, middle 10 = yellow, bottom 10 = red). FIC is shown only when verified.`;
   }
 }
 
