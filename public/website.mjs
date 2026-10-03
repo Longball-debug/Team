@@ -1,6 +1,7 @@
 import {appendRbSummary} from './rb-weekly.mjs';
 import {SNAPSHOT_URL, validateSnapshot} from './snapshot-contract.mjs';
 import {buildDailyTrendRows, dailyTrendFor, formatDailyFpg, selectDailyHitterActions} from './daily-trends.mjs';
+import {ficDailyRating} from './daily-matchups.mjs';
 
 let snapshot = null;
 
@@ -216,11 +217,12 @@ function todayGames(record, schedule) {
   return key && Array.isArray(schedule?.teams?.[key]?.[day]) ? schedule.teams[key][day] : [];
 }
 
-function appendRatingCell(tr, label='Not rated', tone='gray') {
+function appendRatingCell(tr, label='Not rated', tone='gray', title='') {
   const td = document.createElement('td');
   const span = document.createElement('span');
   span.className = `rating ${tone}`;
   span.textContent = label;
+  if (title) span.title = title;
   td.append(span);
   tr.append(td);
 }
@@ -272,7 +274,7 @@ function renderDailyActions(hitters, pitchers, pool, schedule) {
   }
 }
 
-function renderDailyMatchups(hitters, schedule, pool) {
+function renderDailyMatchups(hitters, schedule, pool, ficMatchups) {
   const body = document.getElementById('daily-matchups');
   if (!body) return;
   const poolById = new Map((pool || []).map(player => [player.fantraxId, player]));
@@ -285,7 +287,9 @@ function renderDailyMatchups(hitters, schedule, pool) {
     tr.append(cell(games.length ? games.map(g => `${g.home_away === 'away' ? '@' : 'vs '}${g.opponent}`).join(' / ') : 'Off day'));
     tr.append(cell(games.length ? games.map(g => g.opponent_probable_pitcher || 'Not verified').join(' / ') : '—'));
     tr.append(cell(games.length ? 'Not verified' : '—'));
-    appendRatingCell(tr, games.length ? 'Not rated' : '—', 'gray');
+    const ficItem = ficMatchups?.status === 'verified' ? ficMatchups.players?.[player.Player]?.[phoenixDateString()] : null;
+    const matchupRating = games.length ? ficDailyRating(ficItem) : {label:'—', tone:'gray', detail:null};
+    appendRatingCell(tr, matchupRating.label, matchupRating.tone, matchupRating.detail || '');
     appendRatingCell(tr, trend.label, trend.tone);
     body.append(tr);
   }
@@ -345,7 +349,7 @@ function renderCore(data) {
   const pitchers = roster.filter(p => p.pitcher);
 
   renderDailyActions(hitters, pitchers, data.pool, data.weekly_schedule);
-  renderDailyMatchups(hitters, data.weekly_schedule, data.pool);
+  renderDailyMatchups(hitters, data.weekly_schedule, data.pool, data.fic_matchups);
   renderDailyTrends(hitters, data.pool);
   renderPitcherRecentGames(pitchers, data.pitcher_recent_games);
 

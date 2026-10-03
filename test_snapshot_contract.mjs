@@ -25,6 +25,16 @@ test('exposes only validated Statcast fields',()=>{
  s.statcast2026.matched_pool_players=2;
  assert.equal(validateSnapshot(s).statcast2026,null);
 });
+test('exposes sanitized FIC and Pitcher List matchup context',()=>{
+ const s=fixture();
+ s.fic_matchups={source:'Fantasy Info Central daily matchups',status:'verified',players:{'Corey Seager':{'2026-10-02':{pitcher:'Example (R)',ops:1.050,ab:10,bb:2,qAB_pct:60,hard_hit_pct:50,sample_pa_proxy:12,sample_ok:true,secret:'x'}}}};
+ s.pitcher_list={source:'Pitcher List public SP Streamer rankings',status:'verified',days:{'2026-10-02':[{rank:12,pitcher:'Example Pitcher',pitcher_key:'examplepitcher',matchup:'vs ARI',tier:'Probably Start',source_url:'https://pitcherlist.com/example',secret:'x'}]}};
+ const clean=validateSnapshot(s);
+ assert.equal(clean.fic_matchups.players['Corey Seager']['2026-10-02'].ops,1.05);
+ assert.equal(clean.fic_matchups.players['Corey Seager']['2026-10-02'].secret,undefined);
+ assert.equal(clean.pitcher_list.days['2026-10-02'][0].rank,12);
+ assert.equal(clean.pitcher_list.days['2026-10-02'][0].secret,undefined);
+});
 for(const [name,change] of Object.entries({
  empty:s=>s.players=[],emptyRats:s=>s.players.shift(),standings:s=>s.teams.pop(),
  stale:s=>s.generated_at='2026-01-01T00:00:00Z',future:s=>s.generated_at='2099-01-01T00:00:00Z',

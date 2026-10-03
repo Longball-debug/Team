@@ -1,4 +1,5 @@
 import {SNAPSHOT_URL, validateSnapshot} from './snapshot-contract.mjs';
+import {pitcherListDailyRating} from './daily-matchups.mjs';
 
 const TEAM_ALIASES = {
   AZ:'ARI', ARI:'ARI', CWS:'CHW', CHW:'CHW', KC:'KCR', KCR:'KCR',
@@ -86,11 +87,12 @@ function td(text) {
   return el;
 }
 
-function ratingCell(label, tone='gray') {
+function ratingCell(label, tone='gray', title='') {
   const cell = document.createElement('td');
   const span = document.createElement('span');
   span.className = `rating ${tone}`;
   span.textContent = label;
+  if (title) span.title = title;
   cell.append(span);
   return cell;
 }
@@ -102,7 +104,7 @@ function ensureSection() {
   if (!hitterSection) return;
   const section = document.createElement('div');
   section.className = 'section';
-  section.innerHTML = '<h2>Pitchers — Today\'s Matchups</h2><div class="tablewrap"><table><thead><tr><th>Player</th><th>Pos</th><th>Opponent</th><th>Today Role</th><th>Matchup Rating</th><th>Last 3 FP</th><th>Trend</th></tr></thead><tbody id="daily-pitcher-matchups"></tbody></table></div><div class="note" style="margin-top:8px">SP starts are matched to MLB probable starters. RP/P rows show the team opponent. Trend is derived from the verified last-three game logs. Matchup rating stays ungraded until a verified opponent-strength source is connected.</div>';
+  section.innerHTML = '<h2>Pitchers — Today\'s Matchups</h2><div class="tablewrap"><table><thead><tr><th>Player</th><th>Pos</th><th>Opponent</th><th>Today Role</th><th>Matchup Rating</th><th>Last 3 FP</th><th>Trend</th></tr></thead><tbody id="daily-pitcher-matchups"></tbody></table></div><div class="note" style="margin-top:8px">SP starts are matched to MLB probable starters. Verified Pitcher List rankings are shown when available for today’s starter. RP/P rows stay ungraded. Trend is derived from verified last-three game logs.</div>';
   hitterSection.insertAdjacentElement('afterend', section);
 }
 
@@ -127,8 +129,10 @@ async function render() {
       row.append(td(player.Player));
       row.append(td(normalizePositions(player.Positions).join('/') || 'P'));
       row.append(td(opponentLabel(games)));
-      row.append(td(roleLabel(player, games)));
-      row.append(ratingCell(games.length ? 'Not rated' : '—', 'gray'));
+      const role = roleLabel(player, games);
+      row.append(td(role));
+      const pl = role === 'SP — START' ? pitcherListDailyRating(data.pitcher_list, phoenixDateString(), player.Player) : null;
+      row.append(ratingCell(pl?.label || (games.length ? 'Not rated' : '—'), pl?.tone || 'gray', pl?.detail || ''));
       row.append(td(recent.length ? recent.map(g => Number(g.fantasy_points).toFixed(1)).join(' / ') : 'Not verified'));
       row.append(ratingCell(trend.label, trend.tone));
       body.append(row);

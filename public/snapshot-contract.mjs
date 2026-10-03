@@ -171,6 +171,60 @@ function cleanPlayerLab(value) {
   };
 }
 
+
+function cleanFicMatchups(value) {
+  if (!value || typeof value !== 'object' || !value.players || typeof value.players !== 'object') return null;
+  const players = {};
+  for (const [name, dates] of Object.entries(value.players)) {
+    if (!dates || typeof dates !== 'object') continue;
+    players[name] = {};
+    for (const [day, item] of Object.entries(dates)) {
+      if (!item || typeof item !== 'object') continue;
+      const finite = key => Number.isFinite(item[key]) ? item[key] : null;
+      players[name][day] = {
+        pitcher:typeof item.pitcher === 'string' ? item.pitcher : null,
+        qAB_pct:finite('qAB_pct'),
+        hard_hit_pct:finite('hard_hit_pct'),
+        ab:finite('ab'),
+        h:finite('h'),
+        hr:finite('hr'),
+        bb:finite('bb'),
+        ba:finite('ba'),
+        obp:finite('obp'),
+        ops:finite('ops'),
+        sample_pa_proxy:finite('sample_pa_proxy'),
+        sample_ok:item.sample_ok === true,
+      };
+    }
+  }
+  return {
+    source:typeof value.source === 'string' ? value.source : null,
+    status:value.status === 'verified' ? 'verified' : 'unavailable',
+    sample_rule:typeof value.sample_rule === 'string' ? value.sample_rule : null,
+    players,
+  };
+}
+
+function cleanPitcherList(value) {
+  if (!value || typeof value !== 'object' || !value.days || typeof value.days !== 'object') return null;
+  const days = {};
+  for (const [day, rows] of Object.entries(value.days)) {
+    days[day] = Array.isArray(rows) ? rows.map(item => ({
+      rank:Number.isInteger(item?.rank) && item.rank > 0 ? item.rank : null,
+      pitcher:typeof item?.pitcher === 'string' ? item.pitcher : null,
+      pitcher_key:typeof item?.pitcher_key === 'string' ? item.pitcher_key : null,
+      matchup:typeof item?.matchup === 'string' ? item.matchup : null,
+      tier:typeof item?.tier === 'string' ? item.tier : 'Unverified Tier',
+      source_url:typeof item?.source_url === 'string' && item.source_url.startsWith('https://pitcherlist.com/') ? item.source_url : null,
+    })).filter(item => item.rank && item.pitcher && item.pitcher_key) : [];
+  }
+  return {
+    source:typeof value.source === 'string' ? value.source : null,
+    status:value.status === 'verified' ? 'verified' : 'unavailable',
+    days,
+  };
+}
+
 export function validateSnapshot(value, now = Date.now()) {
   const fail = () => { throw new Error('The latest complete Fantrax refresh is unavailable or overdue.'); };
   if (!value || value.schema_version !== 1 || value.league_id !== 'gxq8uqpqmg5m5edj') fail();
@@ -194,6 +248,8 @@ export function validateSnapshot(value, now = Date.now()) {
     transactions:Array.isArray(value.transactions) ? value.transactions.map(t => ({...t})) : null,
     weekly_schedule:cleanWeeklySchedule(value.weekly_schedule),
     rotoballer_weekly:value.rotoballer_weekly && typeof value.rotoballer_weekly === 'object' ? value.rotoballer_weekly : null,
+    fic_matchups:cleanFicMatchups(value.fic_matchups),
+    pitcher_list:cleanPitcherList(value.pitcher_list),
     pitcher_recent_games:cleanPitcherRecentGames(value.pitcher_recent_games),
     recent_14d:cleanRecent14(value.recent_14d),
     player_lab:cleanPlayerLab(value.player_lab),
