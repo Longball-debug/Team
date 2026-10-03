@@ -130,6 +130,32 @@ function cleanFaLookahead(value) {
   };
 }
 
+function cleanBaseballMonsterEase(value) {
+  if (!value || typeof value !== 'object') return null;
+  const cleanSide = side => {
+    const out = {};
+    if (!side || typeof side !== 'object') return out;
+    for (const [team, item] of Object.entries(side)) {
+      if (!item || typeof item !== 'object') continue;
+      const rank = Number.isInteger(item.rank) && item.rank >= 1 && item.rank <= 30 ? item.rank : null;
+      const easeValue = Number.isFinite(item.value) ? item.value : null;
+      const games = Number.isInteger(item.games) && item.games >= 0 ? item.games : null;
+      if (rank && easeValue !== null) out[team] = {rank, value:easeValue, games};
+    }
+    return out;
+  };
+  const hitters = cleanSide(value.hitters);
+  const pitchers = cleanSide(value.pitchers);
+  return {
+    source:typeof value.source === 'string' ? value.source : null,
+    source_url:typeof value.source_url === 'string' && value.source_url.startsWith('https://baseballmonster.com/') ? value.source_url : null,
+    status:value.status === 'verified' && Object.keys(hitters).length >= 28 && Object.keys(pitchers).length >= 28 ? 'verified' : 'unavailable',
+    definition:typeof value.definition === 'string' ? value.definition : null,
+    hitters,
+    pitchers,
+  };
+}
+
 function cleanPitcherRecentGames(value) {
   if (!value || typeof value !== 'object' || !value.players || typeof value.players !== 'object') return null;
   const players = {};
@@ -258,6 +284,7 @@ export function validateSnapshot(value, now = Date.now()) {
     transactions:Array.isArray(value.transactions) ? value.transactions.map(t => ({...t})) : null,
     weekly_schedule:cleanWeeklySchedule(value.weekly_schedule),
     fa_lookahead:cleanFaLookahead(value.fa_lookahead),
+    baseball_monster_ease:cleanBaseballMonsterEase(value.baseball_monster_ease),
     rotoballer_weekly:value.rotoballer_weekly && typeof value.rotoballer_weekly === 'object' ? value.rotoballer_weekly : null,
     fic_matchups:cleanFicMatchups(value.fic_matchups),
     pitcher_list:cleanPitcherList(value.pitcher_list),
