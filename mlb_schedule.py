@@ -1,4 +1,4 @@
-"""Collect a compact, verified MLB Monday-Sunday schedule from MLB Stats API."""
+"""Collect compact, verified MLB Monday-Sunday schedules from MLB Stats API."""
 from __future__ import annotations
 
 import json
@@ -25,14 +25,14 @@ def _get(path: str, params: dict | None = None, timeout: int = 30):
         return json.load(response)
 
 
-def _week_bounds(now: datetime | None = None) -> tuple[date, date]:
+def _week_bounds(now: datetime | None = None, week_offset: int = 0) -> tuple[date, date]:
     local = (now or datetime.now(ARIZONA)).astimezone(ARIZONA)
-    start = local.date() - timedelta(days=local.weekday())
+    start = local.date() - timedelta(days=local.weekday()) + timedelta(days=7 * week_offset)
     return start, start + timedelta(days=6)
 
 
-def fetch_weekly_schedule(now: datetime | None = None) -> dict:
-    start, end = _week_bounds(now)
+def fetch_weekly_schedule(now: datetime | None = None, week_offset: int = 0) -> dict:
+    start, end = _week_bounds(now, week_offset)
     teams_payload = _get("teams", {"sportId": 1})
     teams = teams_payload.get("teams")
     if not isinstance(teams, list) or len(teams) < 30:
