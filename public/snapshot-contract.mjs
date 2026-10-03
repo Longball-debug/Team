@@ -120,6 +120,16 @@ function cleanWeeklySchedule(schedule) {
   };
 }
 
+function cleanFaLookahead(value) {
+  if (!value || !Array.isArray(value.weeks)) return null;
+  const weeks = value.weeks.map(cleanWeeklySchedule).filter(Boolean).slice(0, 2);
+  if (weeks.length !== 2) return null;
+  return {
+    source:typeof value.source === 'string' ? value.source : 'MLB Stats API',
+    weeks,
+  };
+}
+
 function cleanPitcherRecentGames(value) {
   if (!value || typeof value !== 'object' || !value.players || typeof value.players !== 'object') return null;
   const players = {};
@@ -247,6 +257,7 @@ export function validateSnapshot(value, now = Date.now()) {
     pool:cleanPool(value.pool),
     transactions:Array.isArray(value.transactions) ? value.transactions.map(t => ({...t})) : null,
     weekly_schedule:cleanWeeklySchedule(value.weekly_schedule),
+    fa_lookahead:cleanFaLookahead(value.fa_lookahead),
     rotoballer_weekly:value.rotoballer_weekly && typeof value.rotoballer_weekly === 'object' ? value.rotoballer_weekly : null,
     fic_matchups:cleanFicMatchups(value.fic_matchups),
     pitcher_list:cleanPitcherList(value.pitcher_list),
