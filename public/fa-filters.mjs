@@ -93,7 +93,7 @@ function ensureStatColumns() {
   const table = body?.closest('table');
   const row = table?.querySelector('thead tr');
   if (!row) return;
-  row.innerHTML = '<th>Player</th><th>MLB</th><th>Pos</th><th>14D Pts</th><th>14D PPG</th><th>Trend</th><th>Next Wk</th><th>Wk +2</th><th>FIC</th>';
+  row.innerHTML = '<th>Signal</th><th>Player</th><th>MLB</th><th>Pos</th><th>14D Pts</th><th>14D PPG</th><th>Trend</th><th>Next Wk</th><th>Wk +2</th><th>FIC</th>';
   const wrap = table.closest('.tablewrap');
   if (wrap && !document.getElementById('fa-14d-note')) {
     const note = document.createElement('div');
@@ -183,6 +183,58 @@ function ficSummary(player, weeks) {
   };
 }
 
+function percentileRank(value, peers) {
+  if (!Number.isFinite(value) || !peers.length) return null;
+  const sorted = peers.filter(Number.isFinite).sort((a, b) => a - b);
+  if (!sorted.length) return null;
+  let below = 0;
+  let equal = 0;
+  for (const v of sorted) {
+    if (v < value) below += 1;
+    else if (v === value) equal += 1;
+  }
+  return (below + equal * 0.5) / sorted.length;
+}
+
+function overallSignal(player, allFreeAgents, weeks) {
+  if (!hasRecentStats(player)) return {label:'NOT ENOUGH DATA', tone:'gray', title:'Overall signal requires verified recent fantasy production.'};
+
+  const sameType = allFreeAgents.filter(p => isPitcher(p) === isPitcher(player) && hasRecentStats(p));
+  const pct = percentileRank(player.ppg14, sameType.map(p => p.ppg14));
+  const t = trend(player);
+  const next = scheduleSummary(player, weeks[0]);
+  const later = scheduleSummary(player, weeks[1]);
+  const fic = ficSummary(player, weeks);
+
+  let score = 0;
+  const reasons = [];
+
+  if (pct !== null) {
+    if (pct >= 0.75) { score += 2; reasons.push('top-quartile 14D PPG among available peers'); }
+    else if (pct < 0.25) { score -= 2; reasons.push('bottom-quartile 14D PPG among available peers'); }
+    else reasons.push('middle-half 14D PPG among available peers');
+  }
+
+  if (t.tone === 'green') { score += 1; reasons.push('rising trend'); }
+  else if (t.tone === 'red') { score -= 1; reasons.push('falling trend'); }
+  else if (t.label === 'Steady') reasons.push('steady trend');
+
+  if (next.tone === 'green') { score += 1; reasons.push('easy next-week schedule'); }
+  else if (next.tone === 'red') { score -= 1; reasons.push('tough next-week schedule'); }
+
+  if (later.tone === 'green') { score += 0.5; reasons.push('easy week+2 schedule'); }
+  else if (later.tone === 'red') { score -= 0.5; reasons.push('tough week+2 schedule'); }
+
+  if (!isPitcher(player)) {
+    if (fic.tone === 'green') { score += 0.5; reasons.push('positive verified FIC context'); }
+    else if (fic.tone === 'red') { score -= 0.5; reasons.push('negative verified FIC context'); }
+  }
+
+  if (score >= 2) return {label:'LOOK', tone:'green', title:`Overall signal: ${reasons.join(' · ')}.`};
+  if (score <= -2) return {label:'PASS', tone:'red', title:`Overall signal: ${reasons.join(' · ')}.`};
+  return {label:'WATCH', tone:'yellow', title:`Overall signal: ${reasons.join(' · ')}.`};
+}
+
 function pillCell(label, tone='gray', title='') {
   const td = document.createElement('td');
   const span = document.createElement('span');
@@ -211,6 +263,8 @@ function render() {
   const activity = document.getElementById('fa-activity')?.value || 'recent';
   const weeks = Array.isArray(data.fa_lookahead?.weeks) ? data.fa_lookahead.weeks.slice(0, 2) : [];
 
+  const allFreeAgents = (data.pool || []).filter(isFreeAgent);
+
   const rows = (data.pool || []).filter(player => {
     if (!isFreeAgent(player)) return false;
     if (type === 'pitchers' && !isPitcher(player)) return false;
@@ -236,6 +290,8 @@ function render() {
   body.replaceChildren();
   for (const player of rows) {
     const tr = document.createElement('tr');
+    const signal = overallSignal(player, allFreeAgents, weeks);
+    tr.append(pillCell(signal.label, signal.tone, signal.title));
     tr.append(textCell(player.name));
     tr.append(textCell(player.mlbTeam));
     tr.append(textCell(displayPositions(player.positions)));
@@ -255,7 +311,7 @@ function render() {
   if (!rows.length) {
     const tr = document.createElement('tr');
     const td = document.createElement('td');
-    td.colSpan = 9;
+    td.colSpan = 10;
     td.className = 'empty';
     td.textContent = 'No verified matching free agents.';
     tr.append(td);
@@ -270,7 +326,7 @@ function render() {
     const source = recent?.start_date && recent?.end_date
       ? ` Sorted by 14-day fantasy points, high to low. Trend compares verified 7D vs 30D FP/G. 14D window: ${recent.start_date} through ${recent.end_date}.`
       : ' 14-day fantasy-point feed is not verified in the current snapshot.';
-    note.textContent = `${activityLabel}${source}${dates} Opponents come from MLB Stats API; schedule colors use verified Baseball Monster Ease ranks when available (top 10 easiest = green, middle 10 = yellow, bottom 10 = red). FIC is shown only when verified.`;
+    note.textContent = `${activityLabel}${source}${dates} LOOK/WATCH/PASS combines 14D PPG rank among available peers, verified trend, next-week and week+2 Baseball Monster schedule ease, plus verified FIC context for hitters. Opponents come from MLB Stats API; no signal is based on unverified data.`;
   }
 }
 
