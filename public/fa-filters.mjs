@@ -93,7 +93,7 @@ function ensureStatColumns() {
   const table = body?.closest('table');
   const row = table?.querySelector('thead tr');
   if (!row) return;
-  row.innerHTML = '<th>Signal</th><th>Player</th><th>MLB</th><th>Pos</th><th>14D Pts</th><th>14D PPG</th><th>Trend</th><th>Next Wk</th><th>Wk +2</th><th>FIC</th>';
+  row.innerHTML = '<th>Signal</th><th>Player</th><th>MLB</th><th>Pos</th><th>14D Pts</th><th>14D PPG</th><th>vs Rats</th><th>Trend</th><th>Next Wk</th><th>Wk +2</th><th>FIC</th>';
   const wrap = table.closest('.tablewrap');
   if (wrap && !document.getElementById('fa-14d-note')) {
     const note = document.createElement('div');
@@ -106,6 +106,45 @@ function ensureStatColumns() {
 
 function fmt(value, digits=1) {
   return Number.isFinite(value) ? Number(value).toFixed(digits) : '—';
+}
+
+function comparisonPositions(player) {
+  const positions = normalizePositions(player.positions);
+  if (isPitcher(player)) {
+    const specific = positions.filter(p => ['SP','RP'].includes(p));
+    return specific.length ? specific : ['P'];
+  }
+  const mapped = positions.map(p => ['LF','CF','RF'].includes(p) ? 'OF' : p).filter(p => p !== 'UT');
+  return [...new Set(mapped)];
+}
+
+function sharesUsablePosition(a, b) {
+  if (isPitcher(a) !== isPitcher(b)) return false;
+  const ap = comparisonPositions(a);
+  const bp = comparisonPositions(b);
+  if (!ap.length) return !isPitcher(a);
+  if (ap.includes('P')) return isPitcher(b);
+  if (!bp.length) return !isPitcher(b);
+  if (bp.includes('P')) return isPitcher(a);
+  return ap.some(pos => bp.includes(pos));
+}
+
+function desertRatsPlayers() {
+  return (data?.pool || []).filter(p => String(p.teamName || '').trim().toLowerCase() === 'desert rats');
+}
+
+function rosterUpgrade(player) {
+  if (!hasRecentStats(player)) return {label:'Not enough data', tone:'gray', title:'Candidate has no verified 14-day FP/G.'};
+  const peers = desertRatsPlayers().filter(p => hasRecentStats(p) && sharesUsablePosition(player, p));
+  if (!peers.length) return {label:'No comp', tone:'gray', title:'No Desert Rats player at a usable shared position has verified 14-day FP/G.'};
+  peers.sort((a,b) => a.ppg14 - b.ppg14 || String(a.name || '').localeCompare(String(b.name || '')));
+  const weakest = peers[0];
+  const delta = player.ppg14 - weakest.ppg14;
+  const sign = delta >= 0 ? '+' : '';
+  const tone = delta >= 1 ? 'green' : delta <= -1 ? 'red' : 'yellow';
+  const label = `${sign}${delta.toFixed(2)} · ${weakest.name}`;
+  const title = `${player.name} ${player.ppg14.toFixed(2)} 14D FP/G vs ${weakest.name} ${weakest.ppg14.toFixed(2)} at a shared usable position. Green = at least +1.00 FP/G, yellow = within 1.00 FP/G, red = at least -1.00 FP/G.`;
+  return {label, tone, title, delta, weakest};
 }
 
 function trend(player) {
@@ -298,6 +337,8 @@ function render() {
     tr.append(textCell(displayPositions(player.positions)));
     tr.append(textCell(fmt(player.points14, 1)));
     tr.append(textCell(fmt(player.ppg14, 2)));
+    const upgrade = rosterUpgrade(player);
+    tr.append(pillCell(upgrade.label, upgrade.tone, upgrade.title));
     const t = trend(player);
     tr.append(pillCell(t.label, t.tone));
     for (const week of [weeks[0], weeks[1]]) {
@@ -312,7 +353,7 @@ function render() {
   if (!rows.length) {
     const tr = document.createElement('tr');
     const td = document.createElement('td');
-    td.colSpan = 10;
+    td.colSpan = 11;
     td.className = 'empty';
     td.textContent = 'No verified matching free agents.';
     tr.append(td);
@@ -327,7 +368,7 @@ function render() {
     const source = recent?.start_date && recent?.end_date
       ? ` Sorted by 14-day fantasy points, high to low. Trend compares verified 7D vs 30D FP/G. 14D window: ${recent.start_date} through ${recent.end_date}.`
       : ' 14-day fantasy-point feed is not verified in the current snapshot.';
-    note.textContent = `${activityLabel}${source}${dates} LOOK/WATCH/PASS combines 14D PPG rank among available peers, verified trend, next-week and week+2 Baseball Monster schedule ease, plus verified FIC context for hitters. Opponents come from MLB Stats API; no signal is based on unverified data.`;
+    note.textContent = `${activityLabel}${source}${dates} LOOK/WATCH/PASS combines 14D PPG rank among available peers, verified trend, next-week and week+2 Baseball Monster schedule ease, plus verified FIC context for hitters. vs Rats compares each candidate's verified 14D FP/G with the lowest verified Desert Rats FP/G at a shared usable position; ±1.00 FP/G is treated as the close-call band. Opponents come from MLB Stats API; no signal is based on unverified data.`;
   }
 }
 
