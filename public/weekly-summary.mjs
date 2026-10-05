@@ -40,9 +40,9 @@ function gamesFor(player, schedule, day) {
   return key && Array.isArray(schedule?.teams?.[key]?.[day]) ? schedule.teams[key][day] : [];
 }
 
-function addMetric(host, label, value, detail='') {
+function addMetric(host, label, value, detail='', tone='gray') {
   const card = document.createElement('div');
-  card.className = 'metric weekly-metric';
+  card.className = `metric weekly-metric metric-${tone}`;
   card.innerHTML = `<div class="label">${label}</div><div class="value">${value}</div>${detail ? `<div class="subtle">${detail}</div>` : ''}`;
   host.append(card);
 }
@@ -145,11 +145,16 @@ function renderTeamRows(body, hitters, schedule, days) {
       `${row.home} / ${row.road}`,
       row.games ? `${row.probable}/${row.games}` : '0/0'
     ];
-    for (const value of values) {
+    values.forEach((value, index) => {
       const td = document.createElement('td');
       td.textContent = value;
+      if (index === 2) td.className = `tone-cell ${row.games >= 7 ? 'green' : row.games === 6 ? 'yellow' : 'red'}`;
+      if (index === 5) {
+        const coverage = row.games ? row.probable / row.games : 0;
+        td.className = `tone-cell ${!row.games ? 'gray' : coverage >= .75 ? 'green' : coverage >= .4 ? 'yellow' : 'red'}`;
+      }
       tr.append(td);
-    }
+    });
     body.append(tr);
   }
 }
@@ -277,12 +282,13 @@ function renderSummary(data) {
   const shortWeekHitters = hitterCounts.filter(([,c]) => c > 0 && c <= 6).map(([n,c]) => `${n} (${c})`);
   const pct = hitterGames ? Math.round((probableCoverage / hitterGames) * 100) : 0;
 
-  addMetric(host, 'Hitter Games', hitterGames, `${hitters.length} hitters in roster feed`);
-  addMetric(host, '7+ Game Hitters', sevenGameHitters.length, compactNames(sevenGameHitters, 2));
-  addMetric(host, 'Short-Week Hitters', shortWeekHitters.length, compactNames(shortWeekHitters, 2));
-  addMetric(host, 'Projected SP Starts', projectedStarts, `${startsByPitcher.length} starters currently matched`);
-  addMetric(host, 'Two-Start SPs', twoStart.length, compactNames(twoStart, 2));
-  addMetric(host, 'Probable SP Coverage', `${pct}%`, `${probableCoverage}/${hitterGames} hitter-game matchups named`);
+  const avgGames = hitters.length ? hitterGames / hitters.length : 0;
+  addMetric(host, 'Hitter Games', hitterGames, `${hitters.length} hitters in roster feed`, avgGames >= 7 ? 'green' : avgGames >= 6 ? 'yellow' : 'red');
+  addMetric(host, '7+ Game Hitters', sevenGameHitters.length, compactNames(sevenGameHitters, 2), sevenGameHitters.length ? 'green' : 'yellow');
+  addMetric(host, 'Short-Week Hitters', shortWeekHitters.length, compactNames(shortWeekHitters, 2), shortWeekHitters.length === 0 ? 'green' : shortWeekHitters.length <= 2 ? 'yellow' : 'red');
+  addMetric(host, 'Projected SP Starts', projectedStarts, `${startsByPitcher.length} starters currently matched`, projectedStarts >= 8 ? 'green' : projectedStarts >= 5 ? 'yellow' : 'red');
+  addMetric(host, 'Two-Start SPs', twoStart.length, compactNames(twoStart, 2), twoStart.length >= 2 ? 'green' : twoStart.length === 1 ? 'yellow' : 'gray');
+  addMetric(host, 'Probable SP Coverage', `${pct}%`, `${probableCoverage}/${hitterGames} hitter-game matchups named`, pct >= 75 ? 'green' : pct >= 40 ? 'yellow' : 'red');
 
   for (const day of days) renderDayRow(body, day, hitters, starters, schedule);
   renderTeamRows(teamBody, hitters, schedule, days);
