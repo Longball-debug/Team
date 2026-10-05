@@ -237,6 +237,7 @@ function overallSignal(player, allFreeAgents, weeks) {
 
 function pillCell(label, tone='gray', title='') {
   const td = document.createElement('td');
+  td.className = `tone-cell ${tone}`;
   const span = document.createElement('span');
   span.className = `rating ${tone}`;
   span.textContent = label;

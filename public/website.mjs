@@ -138,7 +138,18 @@ function matchupText(game, includeProbable=false) {
   return text;
 }
 
-function matchupBlock(games, {includeProbable=false, starterName=null}={}) {
+function matchupTone(game, kind, data) {
+  const bm = data?.baseball_monster_ease;
+  if (bm?.status !== 'verified' || !game?.opponent) return 'unverified';
+  const side = kind === 'pitcher' ? bm.pitchers : bm.hitters;
+  const rank = side?.[game.opponent]?.rank;
+  if (!Number.isInteger(rank)) return 'unverified';
+  if (rank <= 10) return 'green';
+  if (rank <= 20) return 'yellow';
+  return 'red';
+}
+
+function matchupBlock(games, {includeProbable=false, starterName=null, kind='hitter', data=null}={}) {
   const wrapper = document.createElement('div');
   const selected = starterName ? games.filter(g => starterMatches(starterName, g)) : games;
   if (!selected.length) {
@@ -148,7 +159,7 @@ function matchupBlock(games, {includeProbable=false, starterName=null}={}) {
   }
   for (const game of selected) {
     const block = document.createElement('span');
-    block.className = 'match match-unverified';
+    block.className = `match match-${matchupTone(game, kind, data)}`;
     block.textContent = matchupText(game, includeProbable);
     if (!game.opponent_probable_pitcher && includeProbable) {
       const small = document.createElement('small');
@@ -186,9 +197,9 @@ function renderWeeklyTable(id, records, schedule, kind, data) {
     for (const day of days) {
       const td = document.createElement('td');
       const games = teamKey && Array.isArray(schedule.teams?.[teamKey]?.[day]) ? schedule.teams[teamKey][day] : [];
-      if (kind === 'hitter') td.append(matchupBlock(games, {includeProbable:true}));
-      else if (isStarter(record)) td.append(matchupBlock(games, {starterName:record.Player}));
-      else if (isReliever(record) || record.pitcher) td.append(matchupBlock(games));
+      if (kind === 'hitter') td.append(matchupBlock(games, {includeProbable:true, kind:'hitter', data}));
+      else if (isStarter(record)) td.append(matchupBlock(games, {starterName:record.Player, kind:'pitcher', data}));
+      else if (isReliever(record) || record.pitcher) td.append(matchupBlock(games, {kind:'pitcher', data}));
       tr.append(td);
     }
     body.append(tr);
@@ -219,6 +230,7 @@ function todayGames(record, schedule) {
 
 function appendRatingCell(tr, label='Not rated', tone='gray', title='') {
   const td = document.createElement('td');
+  td.className = `tone-cell ${tone}`;
   const span = document.createElement('span');
   span.className = `rating ${tone}`;
   span.textContent = label;
@@ -379,7 +391,7 @@ function renderCore(data) {
   const note = document.getElementById('weekly-note');
   if (note) {
     note.textContent = data.weekly_schedule
-      ? `Verified MLB schedule: ${data.weekly_schedule.week_start} through ${data.weekly_schedule.week_end}. Gray means opponent verified but matchup strength is not yet rated.`
+      ? `Verified MLB schedule: ${data.weekly_schedule.week_start} through ${data.weekly_schedule.week_end}. Weekly matchup cells use Baseball Monster opponent Ease when verified: green = easier, yellow = average, red = tougher, gray = not verified.`
       : 'Verified weekly MLB schedule unavailable.';
   }
   renderSummary(data, roster);
