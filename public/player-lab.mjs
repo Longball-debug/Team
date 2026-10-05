@@ -71,8 +71,64 @@ function ensureLayout() {
   }
 }
 
-function metric(label, value, detail='') {
-  return `<div class="metric"><div class="label">${label}</div><div class="value">${value}</div>${detail ? `<div class="subtle">${detail}</div>` : ''}</div>`;
+function metric(label, value, detail='', tone='gray') {
+  return `<div class="metric metric-${tone}"><div class="label">${label}</div><div class="value">${value}</div>${detail ? `<div class="subtle">${detail}</div>` : ''}</div>`;
+}
+
+function rankTone(rank) {
+  if (!rank || !rank.total) return 'gray';
+  const share = rank.rank / rank.total;
+  if (share <= 0.25) return 'green';
+  if (share <= 0.50) return 'yellow';
+  return 'red';
+}
+
+function ppgTone(player, key) {
+  const value = player?.[key];
+  if (!Number.isFinite(value)) return 'gray';
+  const positions = normalizePositionList(player.positions);
+  const pitcher = isPitcher(player);
+  const peers = (data?.pool || []).filter(p => {
+    if (isPitcher(p) !== pitcher || !Number.isFinite(p[key])) return false;
+    const pp = normalizePositionList(p.positions);
+    return positions.length && pp.length && positions.some(pos => pp.includes(pos));
+  }).map(p => p[key]).sort((a,b)=>a-b);
+  if (!peers.length) return 'gray';
+  const below = peers.filter(v => v < value).length;
+  const pct = below / peers.length;
+  if (pct >= 0.75) return 'green';
+  if (pct >= 0.25) return 'yellow';
+  return 'red';
+}
+
+function hitterMetricTone(label, value) {
+  if (!Number.isFinite(value)) return 'gray';
+  if (label === 'OPS') return value >= .800 ? 'green' : value >= .700 ? 'yellow' : 'red';
+  if (label === 'ISO') return value >= .180 ? 'green' : value >= .130 ? 'yellow' : 'red';
+  if (label === 'K%') return value <= 20 ? 'green' : value < 28 ? 'yellow' : 'red';
+  if (label === 'BB%') return value >= 10 ? 'green' : value >= 7 ? 'yellow' : 'red';
+  return 'gray';
+}
+
+function pitcherMetricTone(label, value) {
+  if (!Number.isFinite(value)) return 'gray';
+  if (label === 'ERA') return value <= 3.50 ? 'green' : value <= 4.50 ? 'yellow' : 'red';
+  if (label === 'WHIP') return value <= 1.15 ? 'green' : value <= 1.30 ? 'yellow' : 'red';
+  if (label === 'K-BB%') return value >= 18 ? 'green' : value >= 10 ? 'yellow' : 'red';
+  if (label === 'Starts') return value >= 28 ? 'green' : value >= 20 ? 'yellow' : 'red';
+  return 'gray';
+}
+
+function statcastTone(key, value) {
+  if (!Number.isFinite(value)) return 'gray';
+  if (key === 'exitVelocity') return value >= 90 ? 'green' : value >= 87.5 ? 'yellow' : 'red';
+  if (key === 'hardHitPct') return value >= 45 ? 'green' : value >= 35 ? 'yellow' : 'red';
+  if (key === 'barrelPct') return value >= 10 ? 'green' : value >= 6 ? 'yellow' : 'red';
+  if (key === 'xba') return value >= .270 ? 'green' : value >= .240 ? 'yellow' : 'red';
+  if (key === 'xslg') return value >= .450 ? 'green' : value >= .380 ? 'yellow' : 'red';
+  if (key === 'xwoba') return value >= .350 ? 'green' : value >= .310 ? 'yellow' : 'red';
+  if (key === 'sprintSpeed') return value >= 28.5 ? 'green' : value >= 26.5 ? 'yellow' : 'red';
+  return 'gray';
 }
 
 function scheduleTeamKey(team, schedule) {
@@ -190,24 +246,24 @@ function renderDetail(player) {
   let seasonCards = '';
   if (pitcher) {
     seasonCards = [
-      metric('ERA', fmt(sm.era, 2), `${sm.ip ?? '—'} IP`),
-      metric('WHIP', fmt(sm.whip, 2)),
-      metric('K-BB%', fmt(sm.k_bb_pct, 1), `${sm.k ?? '—'} K · ${sm.bb ?? '—'} BB`),
-      metric('Starts', Number.isFinite(sm.starts) ? String(sm.starts) : '—', `${sm.games ?? '—'} appearances`),
+      metric('ERA', fmt(sm.era, 2), `${sm.ip ?? '—'} IP`, pitcherMetricTone('ERA', sm.era)),
+      metric('WHIP', fmt(sm.whip, 2), '', pitcherMetricTone('WHIP', sm.whip)),
+      metric('K-BB%', fmt(sm.k_bb_pct, 1), `${sm.k ?? '—'} K · ${sm.bb ?? '—'} BB`, pitcherMetricTone('K-BB%', sm.k_bb_pct)),
+      metric('Starts', Number.isFinite(sm.starts) ? String(sm.starts) : '—', `${sm.games ?? '—'} appearances`, pitcherMetricTone('Starts', sm.starts)),
     ].join('');
   } else {
     seasonCards = [
-      metric('OPS', fmt(sm.ops, 3), `${sm.pa ?? '—'} PA`),
-      metric('ISO', fmt(sm.iso, 3)),
-      metric('K%', fmt(sm.k_pct, 1)),
-      metric('BB%', fmt(sm.bb_pct, 1)),
+      metric('OPS', fmt(sm.ops, 3), `${sm.pa ?? '—'} PA`, hitterMetricTone('OPS', sm.ops)),
+      metric('ISO', fmt(sm.iso, 3), '', hitterMetricTone('ISO', sm.iso)),
+      metric('K%', fmt(sm.k_pct, 1), '', hitterMetricTone('K%', sm.k_pct)),
+      metric('BB%', fmt(sm.bb_pct, 1), '', hitterMetricTone('BB%', sm.bb_pct)),
     ].join('');
   }
 
   const statcast = player.statcast2026 || {};
   const statcastCard = (key, label, digits, unit='') => {
     const value = statcast[key];
-    return metric(label, Number.isFinite(value) ? `${Number(value).toFixed(digits)}${unit}` : '—', Number.isFinite(value) ? '2026 Baseball Savant' : '');
+    return metric(label, Number.isFinite(value) ? `${Number(value).toFixed(digits)}${unit}` : '—', Number.isFinite(value) ? '2026 Baseball Savant' : '', statcastTone(key, value));
   };
   const showStatcast = !pitcher || Boolean(player.statcast2026);
   const statcastCards = [
@@ -221,27 +277,27 @@ function renderDetail(player) {
   ].join('');
 
   const signalCards = [
-    metric('Recent Form', t.label, '7-day FP/G vs 30-day FP/G'),
-    metric('Position Standing', rankSignal.label, rankSignal.detail),
-    metric('Weekly Volume', volume.label, volume.detail),
-    metric('Skill Profile', profile.label, profile.detail),
+    metric('Recent Form', t.label, '7-day FP/G vs 30-day FP/G', t.tone),
+    metric('Position Standing', rankSignal.label, rankSignal.detail, rankTone(rank)),
+    metric('Weekly Volume', volume.label, volume.detail, volume.label === 'Heavy slate' ? 'green' : volume.label === 'Normal slate' ? 'yellow' : volume.label === 'Light slate' ? 'red' : 'gray'),
+    metric('Skill Profile', profile.label, profile.detail, profile.label.startsWith('Strong') ? 'green' : profile.label.startsWith('Middle') ? 'yellow' : profile.label === 'Unavailable' ? 'gray' : 'red'),
   ].join('');
 
   const contextCards = [
-    metric('14D Pos Rank', rank ? `${rank.rank}/${rank.total}` : '—', 'FP/G among players sharing eligibility'),
-    metric('Week Games', sched ? String(sched.games) : '—', sched ? `${sched.home} home · ${sched.road} road` : 'Schedule unavailable'),
-    metric('Probable SPs', sched ? `${sched.probable}/${sched.games}` : '—', pitcher ? 'Opponent probable-starter coverage' : 'Named opposing starters'),
-    metric('Opponents', sched?.opponents?.length ? sched.opponents.join(', ') : '—'),
+    metric('14D Pos Rank', rank ? `${rank.rank}/${rank.total}` : '—', 'FP/G among players sharing eligibility', rankTone(rank)),
+    metric('Week Games', sched ? String(sched.games) : '—', sched ? `${sched.home} home · ${sched.road} road` : 'Schedule unavailable', !sched ? 'gray' : sched.games >= 7 ? 'green' : sched.games === 6 ? 'yellow' : 'red'),
+    metric('Probable SPs', sched ? `${sched.probable}/${sched.games}` : '—', pitcher ? 'Opponent probable-starter coverage' : 'Named opposing starters', !sched || !sched.games ? 'gray' : (sched.probable/sched.games) >= .75 ? 'green' : (sched.probable/sched.games) >= .4 ? 'yellow' : 'red'),
+    metric('Opponents', sched?.opponents?.length ? sched.opponents.join(', ') : '—', '', sched?.opponents?.length ? 'yellow' : 'gray'),
   ].join('');
 
   host.innerHTML = `
     <h2>${player.name} — Scouting Card</h2>
     <div class="warning">${player.mlbTeam || '—'} · ${normalizePositions(player.positions)} · ${ownership}</div>
     <div class="summary">
-      ${metric('7D FP/G', fmt(player.ppg7, 2), `${fmt(player.points7,1)} total · ${player.games7 ?? '—'} games`)}
-      ${metric('14D FP/G', fmt(player.ppg14, 2), `${fmt(player.points14,1)} total · ${player.games14 ?? '—'} games`)}
-      ${metric('30D FP/G', fmt(player.ppg30, 2), `${fmt(player.points30,1)} total · ${player.games30 ?? '—'} games`)}
-      ${metric('Trend', t.label, '7-day pace vs 30-day pace')}
+      ${metric('7D FP/G', fmt(player.ppg7, 2), `${fmt(player.points7,1)} total · ${player.games7 ?? '—'} games`, ppgTone(player, 'ppg7'))}
+      ${metric('14D FP/G', fmt(player.ppg14, 2), `${fmt(player.points14,1)} total · ${player.games14 ?? '—'} games`, ppgTone(player, 'ppg14'))}
+      ${metric('30D FP/G', fmt(player.ppg30, 2), `${fmt(player.points30,1)} total · ${player.games30 ?? '—'} games`, ppgTone(player, 'ppg30'))}
+      ${metric('Trend', t.label, '7-day pace vs 30-day pace', t.tone)}
     </div>
     <h2>Decision Signals</h2>
     <div class="summary">${signalCards}</div>
