@@ -334,11 +334,15 @@ function render() {
     tr.dataset.playerId = p.fantraxId || '';
     const t = trend(p);
     const values = [p.name,p.mlbTeam,normalizePositions(p.positions),p.teamName || p.availability || 'Unavailable',fmt(p.ppg7,2),fmt(p.ppg14,2),fmt(p.ppg30,2),t.label];
-    for (const value of values) {
+    values.forEach((value, index) => {
       const td = document.createElement('td');
       td.textContent = value || 'Unavailable';
+      if (index === 4) td.className = `tone-cell ${ppgTone(p, 'ppg7')}`;
+      if (index === 5) td.className = `tone-cell ${ppgTone(p, 'ppg14')}`;
+      if (index === 6) td.className = `tone-cell ${ppgTone(p, 'ppg30')}`;
+      if (index === 7) td.className = `tone-cell ${t.tone}`;
       tr.append(td);
-    }
+    });
     tr.addEventListener('click', () => {
       selectedId = p.fantraxId;
       renderDetail(p);
