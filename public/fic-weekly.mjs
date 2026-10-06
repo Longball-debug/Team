@@ -27,7 +27,8 @@ function decorate(data) {
   for (const row of rows) {
     const cells = row.querySelectorAll('td');
     const name = cells[0]?.dataset.playerName || cells[0]?.textContent?.trim();
-    if (!name || !source.players?.[name]) continue;
+    const playerId = cells[0]?.dataset.playerId || '';
+    if (!name || !playerId || source.fantrax_ids_by_name?.[name] !== playerId || !source.players?.[name]) continue;
     days.forEach((day, index) => {
       const item = source.players[name]?.[day];
       const mark = signal(item);
