@@ -231,6 +231,52 @@ function cleanPlayerLab(value, now) {
 }
 
 
+function cleanRotoballerWeekly(value, now) {
+  if (!value || typeof value !== 'object') return null;
+  const fetchedAt = freshFetchedAt(value.fetched_at, now);
+  if (!fetchedAt) return null;
+  const cleanSide = side => {
+    if (!side || typeof side !== 'object') return {status:'unavailable', ratings:[]};
+    const ratings = Array.isArray(side.ratings) ? side.ratings.map(item => {
+      if (!item || typeof item !== 'object') return null;
+      const daily = {};
+      if (item.daily_ratings && typeof item.daily_ratings === 'object') {
+        for (const [day, score] of Object.entries(item.daily_ratings)) {
+          daily[day] = Number.isFinite(score) ? score : null;
+        }
+      }
+      return {
+        player:typeof item.player === 'string' ? item.player : null,
+        player_key:typeof item.player_key === 'string' ? item.player_key : null,
+        team:typeof item.team === 'string' ? item.team : null,
+        recommendation:typeof item.recommendation === 'string' ? item.recommendation : null,
+        rating:Number.isFinite(item.rating) ? item.rating : null,
+        daily_ratings:daily,
+        date:typeof item.date === 'string' ? item.date : null,
+        opponent:typeof item.opponent === 'string' ? item.opponent : null,
+        home_away:item.home_away === 'home' || item.home_away === 'away' ? item.home_away : null,
+        status:item.status === 'verified' ? 'verified' : 'ambiguous',
+      };
+    }).filter(Boolean) : [];
+    return {
+      status:side.status === 'verified' ? 'verified' : 'unavailable',
+      url:typeof side.url === 'string' && side.url.startsWith('https://www.rotoballer.com/') ? side.url : null,
+      week_start:typeof side.week_start === 'string' ? side.week_start : null,
+      week_end:typeof side.week_end === 'string' ? side.week_end : null,
+      ratings,
+    };
+  };
+  return {
+    source:typeof value.source === 'string' ? value.source : null,
+    fetched_at:fetchedAt,
+    status:value.status === 'verified' ? 'verified' : 'unavailable',
+    week_start:typeof value.week_start === 'string' ? value.week_start : null,
+    week_end:typeof value.week_end === 'string' ? value.week_end : null,
+    pitchers:cleanSide(value.pitchers),
+    hitters:cleanSide(value.hitters),
+  };
+}
+
 function cleanFicMatchups(value, now) {
   if (!value || typeof value !== 'object' || !value.players || typeof value.players !== 'object') return null;
   const players = {};
@@ -320,7 +366,7 @@ export function validateSnapshot(value, now = Date.now()) {
     weekly_schedule:cleanWeeklySchedule(value.weekly_schedule),
     fa_lookahead:cleanFaLookahead(value.fa_lookahead),
     baseball_monster_ease:cleanBaseballMonsterEase(value.baseball_monster_ease, now),
-    rotoballer_weekly:value.rotoballer_weekly && typeof value.rotoballer_weekly === 'object' && freshFetchedAt(value.rotoballer_weekly.fetched_at, now) ? value.rotoballer_weekly : null,
+    rotoballer_weekly:cleanRotoballerWeekly(value.rotoballer_weekly, now),
     fic_matchups:cleanFicMatchups(value.fic_matchups, now),
     pitcher_list:cleanPitcherList(value.pitcher_list, now),
     pitcher_recent_games:cleanPitcherRecentGames(value.pitcher_recent_games, now),
