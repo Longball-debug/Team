@@ -437,9 +437,9 @@ async function refresh() {
     if (!response.ok) throw new Error(`HTTP ${response.status}`);
     snapshot = validateSnapshot(await response.json());
     renderCore(snapshot);
-    const faSearch = document.getElementById('fa-search');
-    const faType = document.getElementById('fa-type');
-    freeAgents(snapshot, faSearch?.value || '', faType?.value || 'all');
+    // The enriched Free Agent Board is owned by fa-filters.mjs.
+    // Do not render the legacy four-column free-agent table here; doing so
+    // overwrites the enriched board during the five-minute core refresh.
     playerLab(snapshot, document.getElementById('lab-search')?.value || '');
     const stamp = new Date(snapshot.generated_at).toLocaleString();
     setStatus(`Last Updated: ${stamp} · ${snapshot.source}`);
@@ -453,8 +453,8 @@ async function refresh() {
   }
 }
 
-document.getElementById('fa-search').addEventListener('input', e => snapshot && freeAgents(snapshot, e.target.value, document.getElementById('fa-type').value));
-document.getElementById('fa-type').addEventListener('change', e => snapshot && freeAgents(snapshot, document.getElementById('fa-search').value, e.target.value));
+// Free Agent Board filter events are handled by fa-filters.mjs so every
+// filter path uses the same enriched render pipeline.
 document.getElementById('lab-search').addEventListener('input', e => snapshot && playerLab(snapshot, e.target.value));
 
 const initial = location.hash.replace('#','');
