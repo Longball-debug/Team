@@ -370,7 +370,8 @@ function renderPitcherRecentGames(pitchers, recent) {
   const map = recent?.players || {};
   for (const pitcher of pitchers) {
     const item = map[pitcher.Player];
-    const games = Array.isArray(item?.games) ? item.games.slice(0, 3) : [];
+    const identityOk = item?.identity_status === 'VERIFIED' && item?.fantrax_id === pitcher['Player ID'];
+    const games = identityOk && Array.isArray(item?.games) ? item.games.slice(0, 3) : [];
     const tr = document.createElement('tr');
     tr.append(cell(pitcher.Player));
     tr.append(gameCell(games[0]));
