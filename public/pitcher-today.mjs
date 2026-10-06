@@ -1,5 +1,6 @@
 import {SNAPSHOT_URL, validateSnapshot} from './snapshot-contract.mjs';
 import {pitcherListDailyRating} from './daily-matchups.mjs';
+import {seasonMode} from './season-mode.mjs';
 
 const TEAM_ALIASES = {
   AZ:'ARI', ARI:'ARI', CWS:'CHW', CHW:'CHW', KC:'KCR', KCR:'KCR',
@@ -116,7 +117,8 @@ function ensureSection() {
   if (!hitterSection) return;
   const section = document.createElement('div');
   section.className = 'section';
-  section.innerHTML = '<h2>Pitchers — Today\'s Matchups</h2><div class="tablewrap"><table class="daily-compact"><thead><tr><th>Player</th><th>Today</th><th>PL Rating</th><th>Last 3 FP</th><th>Trend</th></tr></thead><tbody id="daily-pitcher-matchups"></tbody></table></div><div class="note" style="margin-top:8px">SP starts are matched to MLB probable starters. Verified Pitcher List rankings appear for today’s starter; RP/P rows stay ungraded.</div>';
+  section.id = 'daily-pitcher-section';
+  section.innerHTML = '<h2 id="daily-pitcher-title">Pitchers — Today\'s Matchups</h2><div class="tablewrap"><table class="daily-compact"><thead id="daily-pitcher-head"><tr><th>Player</th><th>Today</th><th>PL Rating</th><th>Last 3 FP</th><th>Trend</th></tr></thead><tbody id="daily-pitcher-matchups"></tbody></table></div><div id="daily-pitcher-note" class="note" style="margin-top:8px">SP starts are matched to MLB probable starters. Verified Pitcher List rankings appear for today’s starter; RP/P rows stay ungraded.</div>';
   hitterSection.insertAdjacentElement('afterend', section);
 }
 
@@ -128,6 +130,17 @@ async function render() {
     const response = await fetch(`${SNAPSHOT_URL}?pitchers=${Date.now()}`, {cache:'no-store'});
     if (!response.ok) throw new Error(`HTTP ${response.status}`);
     const data = validateSnapshot(await response.json());
+    const mode = seasonMode(data);
+    const title = document.getElementById('daily-pitcher-title');
+    const head = document.getElementById('daily-pitcher-head');
+    const note = document.getElementById('daily-pitcher-note');
+    if (title) title.textContent = mode.offseason ? 'Pitchers — Recent Form' : 'Pitchers — Today\'s Matchups';
+    if (head) head.innerHTML = mode.offseason
+      ? '<tr><th>Player</th><th>Last 3 FP</th><th>Trend</th></tr>'
+      : '<tr><th>Player</th><th>Today</th><th>PL Rating</th><th>Last 3 FP</th><th>Trend</th></tr>';
+    if (note) note.textContent = mode.offseason
+      ? 'OFFSEASON MODE: last-three verified pitching results remain available; daily opponent and Pitcher List matchup fields are hidden.'
+      : 'SP starts are matched to MLB probable starters. Verified Pitcher List rankings appear for today’s starter; RP/P rows stay ungraded.';
     const team = data.teams.find(t => t.Team.trim().toLowerCase() === 'desert rats');
     const pitchers = data.players
       .filter(p => p['Fantasy Team ID'] === team?.['Team ID'] && isPitcher(p))
@@ -139,10 +152,12 @@ async function render() {
       const trend = trendFor(recent);
       const row = document.createElement('tr');
       row.append(td(player.Player));
-      const role = roleLabel(player, games);
-      row.append(todayCell(games, role));
-      const pl = role === 'SP — START' ? pitcherListDailyRating(data.pitcher_list, phoenixDateString(), player.Player) : null;
-      row.append(ratingCell(pl?.label || (games.length ? 'Not rated' : '—'), pl?.tone || 'gray', pl?.detail || ''));
+      if (!mode.offseason) {
+        const role = roleLabel(player, games);
+        row.append(todayCell(games, role));
+        const pl = role === 'SP — START' ? pitcherListDailyRating(data.pitcher_list, phoenixDateString(), player.Player) : null;
+        row.append(ratingCell(pl?.label || (games.length ? 'Not rated' : '—'), pl?.tone || 'gray', pl?.detail || ''));
+      }
       row.append(td(recent.length ? recent.map(g => Number(g.fantasy_points).toFixed(1)).join(' / ') : 'Not verified'));
       row.append(ratingCell(trend.label, trend.tone));
       body.append(row);
