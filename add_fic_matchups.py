@@ -163,28 +163,28 @@ def _is_free_agent(value: Any) -> bool:
     return text == "fa" or "free" in text
 
 
-def _target_hitters(snapshot: dict[str, Any]) -> list[str]:
-    names: set[str] = set()
+def _target_hitters(snapshot: dict[str, Any]) -> list[tuple[str, str]]:
+    """Return (Fantrax ID, name) pairs for Rats hitters and free-agent hitters.
 
+    Fantrax ID is the canonical league-side identity. Name is retained only for
+    matching FIC's abbreviated display names. Duplicate/ambiguous FIC name keys
+    are rejected later instead of being guessed.
+    """
     teams = snapshot.get("teams") or []
-    players = snapshot.get("players") or []
     rats = next((t for t in teams if str(t.get("Team", "")).strip().lower() == "desert rats"), None)
     team_id = rats.get("Team ID") if rats else None
-    for player in players:
-        if player.get("Fantasy Team ID") != team_id or not _is_hitter(player.get("Positions")):
-            continue
-        name = str(player.get("Player") or "").strip()
-        if name:
-            names.add(name)
-
+    targets: list[tuple[str, str]] = []
     for player in snapshot.get("pool") or []:
-        if not _is_free_agent(player.get("availability")) or not _is_hitter(player.get("positions")):
+        if not _is_hitter(player.get("positions")):
             continue
+        is_rat = team_id is not None and player.get("teamId") == team_id
+        if not is_rat and not _is_free_agent(player.get("availability")):
+            continue
+        fantrax_id = str(player.get("fantraxId") or "").strip()
         name = str(player.get("name") or "").strip()
-        if name:
-            names.add(name)
-
-    return sorted(names)
+        if fantrax_id and name and name != "Name unavailable":
+            targets.append((fantrax_id, name))
+    return targets
 
 
 def _lookahead_days(snapshot: dict[str, Any]) -> list[str]:
@@ -203,15 +203,17 @@ def attach(snapshot: dict[str, Any]) -> dict[str, Any]:
     hitters = _target_hitters(snapshot)
     days = _lookahead_days(snapshot)
 
-    key_to_names: dict[str, list[str]] = {}
-    for name in hitters:
-        key_to_names.setdefault(_abbr_key(name), []).append(name)
+    key_to_targets: dict[str, list[tuple[str, str]]] = {}
+    for fantrax_id, name in hitters:
+        key_to_targets.setdefault(_abbr_key(name), []).append((fantrax_id, name))
 
     result: dict[str, Any] = {
         "source": "Fantasy Info Central daily matchups",
         "url_template": BASE_URL,
         "status": "verified",
         "sample_rule": "sample_ok when AB + BB >= 5; factual BvP context only",
+        "identity_rule": "Fantrax ID is canonical; ambiguous FIC abbreviated-name matches are rejected",
+        "fantrax_ids_by_name": {},
         "players": {},
         "days": {},
     }
@@ -224,14 +226,22 @@ def attach(snapshot: dict[str, Any]) -> dict[str, Any]:
             continue
 
         matched = 0
+        ambiguous = 0
         for row in rows:
-            names = key_to_names.get(row["batter_key"], [])
-            if len(names) != 1:
+            targets = key_to_targets.get(row["batter_key"], [])
+            if len(targets) != 1:
+                if targets:
+                    ambiguous += 1
                 continue
-            name = names[0]
+            fantrax_id, name = targets[0]
+            result["fantrax_ids_by_name"][name] = fantrax_id
             result["players"].setdefault(name, {})[day] = {k: v for k, v in row.items() if k != "batter_key"}
             matched += 1
-        result["days"][day] = {"status": "verified", "matched_target_hitters": matched}
+        result["days"][day] = {
+            "status": "verified",
+            "matched_target_hitters": matched,
+            "ambiguous_target_matches": ambiguous,
+        }
 
     if not any(v.get("status") == "verified" for v in result["days"].values()):
         result["status"] = "unavailable"
