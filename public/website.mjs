@@ -12,25 +12,6 @@ function cell(value, fallback='Unavailable') {
   return td;
 }
 
-function replaceRows(id, records, columns, fallback='Unavailable') {
-  const body = document.getElementById(id);
-  if (!body) return;
-  body.replaceChildren(...records.map(record => {
-    const tr = document.createElement('tr');
-    for (const col of columns) tr.append(cell(record[col], fallback));
-    return tr;
-  }));
-  if (!records.length) {
-    const tr = document.createElement('tr');
-    const td = document.createElement('td');
-    td.colSpan = columns.length;
-    td.className = 'empty';
-    td.textContent = 'No verified matching records.';
-    tr.append(td);
-    body.append(tr);
-  }
-}
-
 function setStatus(text) {
   document.querySelectorAll('[data-status]').forEach(el => { el.textContent = text; });
 }
