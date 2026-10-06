@@ -1,7 +1,7 @@
 import unittest
 from unittest.mock import patch
 
-from mlb_pitcher_logs import collect_pitcher_logs
+from mlb_pitcher_logs import collect_pitcher_logs, longball_points
 
 
 class PitcherIdentityTests(unittest.TestCase):
@@ -64,6 +64,23 @@ class PitcherIdentityTests(unittest.TestCase):
         self.assertEqual(item["identity_status"], "VERIFIED")
         self.assertEqual(item["mlb_id"], 999)
         self.assertEqual(item["source_status"], "VERIFIED")
+
+
+    def test_sp_and_rp_win_loss_scoring_uses_actual_game_role(self):
+        base = {
+            "inningsPitched": "1.0",
+            "strikeOuts": 0,
+            "earnedRuns": 0,
+            "hits": 0,
+            "baseOnBalls": 0,
+            "saves": 0,
+            "holds": 0,
+            "blownSaves": 0,
+        }
+        self.assertEqual(longball_points({**base, "gamesStarted": 1, "wins": 1, "losses": 0}), 7.0)
+        self.assertEqual(longball_points({**base, "gamesStarted": 0, "wins": 1, "losses": 0}), 4.0)
+        self.assertEqual(longball_points({**base, "gamesStarted": 1, "wins": 0, "losses": 1}), -3.0)
+        self.assertEqual(longball_points({**base, "gamesStarted": 0, "wins": 0, "losses": 1}), 0.0)
 
 
 if __name__ == "__main__":
