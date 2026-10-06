@@ -205,6 +205,10 @@ function scheduleSummary(player, week) {
 function ficSummary(player, weeks) {
   if (isPitcher(player)) return {label:'—', tone:'gray', title:'FIC BvP applies to hitters.'};
   if (data?.fic_matchups?.status !== 'verified') return {label:'Not verified', tone:'gray', title:'FIC matchup feed unavailable.'};
+  const mappedId = data.fic_matchups.fantrax_ids_by_name?.[player.name];
+  if (!mappedId || mappedId !== player.fantraxId) {
+    return {label:'Not verified', tone:'gray', title:'FIC player identity could not be verified against Fantrax.'};
+  }
   const dates = new Set((weeks || []).flatMap(week => Array.isArray(week?.days) ? week.days : []));
   const items = Object.entries(data.fic_matchups.players?.[player.name] || {})
     .filter(([day]) => dates.has(day))
