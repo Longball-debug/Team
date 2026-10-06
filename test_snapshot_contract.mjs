@@ -41,3 +41,25 @@ for(const [name,change] of Object.entries({
  duplicate:s=>s.players.push(s.players[0]),membership:s=>s.players[0]['Fantasy Team ID']='missing',
  points:s=>s.teams[0].Points='unverified',missingRats:s=>s.teams[0].Team='other',
  })) test('rejects '+name,()=>{const s=fixture();change(s);assert.throws(()=>validateSnapshot(s));});
+
+
+test('freshness-gates external sources and fails stale data closed',()=>{
+ const now=Date.parse('2026-10-05T20:00:00Z');
+ const s=fixture();
+ s.generated_at='2026-10-05T19:00:00Z';
+ s.fic_matchups={source:'Fantasy Info Central daily matchups',fetched_at:'2026-10-05T19:10:00Z',status:'verified',players:{}};
+ s.pitcher_list={source:'Pitcher List public SP Streamer rankings',fetched_at:'2026-10-05T19:10:00Z',status:'verified',days:{}};
+ s.rotoballer_weekly={source:'RotoBaller weekly Start/Sit',fetched_at:'2026-10-05T19:10:00Z',status:'verified'};
+ let clean=validateSnapshot(s,now);
+ assert.equal(clean.fic_matchups.status,'verified');
+ assert.equal(clean.pitcher_list.status,'verified');
+ assert.equal(clean.rotoballer_weekly.status,'verified');
+
+ s.fic_matchups.fetched_at='2026-10-03T00:00:00Z';
+ s.pitcher_list.fetched_at='2026-10-03T00:00:00Z';
+ s.rotoballer_weekly.fetched_at='2026-10-03T00:00:00Z';
+ clean=validateSnapshot(s,now);
+ assert.equal(clean.fic_matchups.status,'unavailable');
+ assert.equal(clean.pitcher_list.status,'unavailable');
+ assert.equal(clean.rotoballer_weekly,null);
+});
