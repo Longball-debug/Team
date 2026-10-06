@@ -65,11 +65,9 @@ function opponentLabel(games) {
 }
 
 function recentGamesFor(player, recent) {
-  const direct = recent?.players?.[player.Player];
-  if (Array.isArray(direct?.games)) return direct.games.slice(0, 3);
-  const key = Object.keys(recent?.players || {}).find(name => normalizedName(name) === normalizedName(player.Player));
-  const item = key ? recent.players[key] : null;
-  return Array.isArray(item?.games) ? item.games.slice(0, 3) : [];
+  const item = recent?.players?.[player.Player];
+  if (item?.identity_status !== 'VERIFIED' || item?.fantrax_id !== player['Player ID']) return [];
+  return Array.isArray(item.games) ? item.games.slice(0, 3) : [];
 }
 
 function trendFor(games) {
