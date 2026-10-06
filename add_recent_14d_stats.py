@@ -7,7 +7,7 @@ import re
 import unicodedata
 import urllib.parse
 import urllib.request
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from zoneinfo import ZoneInfo
 
@@ -187,6 +187,7 @@ def main() -> None:
     ambiguous_source_names = sum(v is None for v in hitters.values()) + sum(v is None for v in pitchers.values())
     data["recent_14d"] = {
         "source": "MLB Stats API · FantasyGM2027 scoring",
+        "fetched_at": datetime.now(timezone.utc).isoformat(),
         "start_date": start_s,
         "end_date": end_s,
         "matched_pool_players": matched,
