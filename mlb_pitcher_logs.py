@@ -56,16 +56,25 @@ def _num(stat: dict, key: str) -> float:
         return 0.0
 
 
-def longball_points(stat: dict, rp_only: bool = False) -> float:
+def longball_points(stat: dict) -> float:
+    """Score one pitching appearance using actual game role.
+
+    LONGBALL 2027 uses SP W/L at +5/-5 and RP W/L at +2/-2.
+    Role is determined from gamesStarted for this appearance, never from
+    Fantrax position eligibility.
+    """
     ip = _ip_value(stat.get("inningsPitched"))
     k = _num(stat, "strikeOuts")
     er = _num(stat, "earnedRuns")
     hits = _num(stat, "hits")
     bb = _num(stat, "baseOnBalls")
     gs = _num(stat, "gamesStarted")
-    qs = 1 if gs > 0 and ip >= 6 and er <= 3 else 0
-    win = 0 if rp_only else _num(stat, "wins")
-    loss = 0 if rp_only else _num(stat, "losses")
+    relief_role = gs < 1
+    qs = 1 if not relief_role and ip >= 6 and er <= 3 else 0
+    win = _num(stat, "wins")
+    loss = _num(stat, "losses")
+    win_points = 2 if relief_role else 5
+    loss_points = -2 if relief_role else -5
     saves = _num(stat, "saves")
     holds = _num(stat, "holds")
     blown = _num(stat, "blownSaves")
@@ -76,9 +85,9 @@ def longball_points(stat: dict, rp_only: bool = False) -> float:
         - hits * 0.5
         - bb * 0.5
         + qs * 5
-        + win * 5
+        + win * win_points
         + (saves + holds) * 5
-        - loss * 5
+        + loss * loss_points
         - blown * 3
     )
     return round(points, 2)
@@ -160,7 +169,7 @@ def collect_pitcher_logs(snapshot: dict, season: int = SEASON) -> dict:
                 "saves": int(_num(stat, "saves")),
                 "holds": int(_num(stat, "holds")),
                 "blown_saves": int(_num(stat, "blownSaves")),
-                "fantasy_points": longball_points(stat, rp_only=rp_only),
+                "fantasy_points": longball_points(stat),
             }
             selected.append(game)
             if len(selected) == 3:
