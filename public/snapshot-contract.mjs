@@ -162,7 +162,9 @@ function cleanPitcherRecentGames(value) {
   for (const [name, item] of Object.entries(value.players)) {
     if (!item || typeof item !== 'object') continue;
     players[name] = {
+      fantrax_id:typeof item.fantrax_id === 'string' ? item.fantrax_id : null,
       mlb_id:item.mlb_id,
+      identity_status:typeof item.identity_status === 'string' ? item.identity_status : null,
       mode:item.mode,
       source_status:item.source_status,
       games:Array.isArray(item.games) ? item.games.slice(0,3).map(g => ({
