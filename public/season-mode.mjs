@@ -9,7 +9,7 @@ export function seasonMode(data, now = new Date()) {
   const parts = phoenixParts(now);
   const month = Number(parts.month);
   const gamesSeen = Number(data?.weekly_schedule?.games_seen);
-  const regularCalendarWindow = month >= 3 && month <= 9;
+  const regularCalendarWindow = month >= 4 && month <= 9;
   const fullRegularWeek = Number.isFinite(gamesSeen) && gamesSeen >= 20;
   const inSeason = regularCalendarWindow || fullRegularWeek;
   return {
