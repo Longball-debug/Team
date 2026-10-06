@@ -63,3 +63,21 @@ test('freshness-gates external sources and fails stale data closed',()=>{
  assert.equal(clean.pitcher_list.status,'unavailable');
  assert.equal(clean.rotoballer_weekly,null);
 });
+
+
+test('RotoBaller payload is freshness-gated and sanitized',()=>{
+ const now=Date.parse('2026-10-05T20:00:00Z');
+ const s=fixture();
+ s.generated_at='2026-10-05T19:00:00Z';
+ s.rotoballer_weekly={
+  source:'RotoBaller weekly Start/Sit',fetched_at:'2026-10-05T19:10:00Z',status:'verified',
+  week_start:'2026-09-28',week_end:'2026-10-04',secret:'x',
+  pitchers:{status:'verified',url:'https://www.rotoballer.com/example',week_start:'2026-09-28',week_end:'2026-10-04',
+   ratings:[{player:'Aaron Nola',player_key:'aaronnola',team:'PHI',recommendation:'START',rating:80,date:'2026-10-01',opponent:'NYM',home_away:'home',status:'verified',secret:'x'}]},
+  hitters:{status:'unavailable',ratings:[]}
+ };
+ const clean=validateSnapshot(s,now).rotoballer_weekly;
+ assert.equal(clean.secret,undefined);
+ assert.equal(clean.pitchers.ratings[0].secret,undefined);
+ assert.equal(clean.pitchers.ratings[0].rating,80);
+});
