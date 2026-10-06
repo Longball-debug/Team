@@ -42,7 +42,9 @@ function show(page) {
 
 document.querySelectorAll('[data-page]').forEach(btn => btn.addEventListener('click', () => show(btn.dataset.page)));
 document.querySelectorAll('.homebtn').forEach(btn => btn.addEventListener('click', () => show('home')));
-document.querySelectorAll('.reloadbtn').forEach(btn => btn.addEventListener('click', () => refresh()));
+document.querySelectorAll('.reloadbtn').forEach(btn => {
+  if (!btn.closest('#freeagents')) btn.addEventListener('click', () => refresh());
+});
 
 function desertRatsTeam(data) {
   return data.teams.find(t => t.Team.trim().toLowerCase() === 'desert rats');
@@ -397,25 +399,6 @@ function renderCore(data) {
   renderSummary(data, roster);
 }
 
-function freeAgents(data, query='', type='all') {
-  const q = query.trim().toLowerCase();
-  const records = (data.pool || []).filter(p => {
-    const availability = String(p.availability || '').toLowerCase();
-    const isFA = availability.includes('free') || availability === 'fa';
-    if (!isFA) return false;
-    if (type === 'pitchers' && !isPitcher(p)) return false;
-    if (type === 'hitters' && isPitcher(p)) return false;
-    const haystack = [p.name,p.mlbTeam,formatPositions(p.positions),p.availability].join(' ').toLowerCase();
-    return !q || haystack.includes(q);
-  }).slice(0,250).map(p => ({
-    Player:p.name,
-    MLB:p.mlbTeam,
-    Positions:formatPositions(p.positions),
-    Availability:p.availability,
-  }));
-  replaceRows('fa-rows', records, ['Player','MLB','Positions','Availability']);
-}
-
 function playerLab(data, query='') {
   const q = query.trim().toLowerCase();
   const records = (data.pool || []).filter(p => {
@@ -446,7 +429,7 @@ async function refresh() {
   } catch {
     snapshot = null;
     setStatus('Current data unavailable: the latest complete refresh could not be verified.');
-    ['daily-matchups','daily-trends','daily-pitcher-games','weekly-hitters','weekly-pitchers','fa-rows','lab-rows'].forEach(id => {
+    ['daily-matchups','daily-trends','daily-pitcher-games','weekly-hitters','weekly-pitchers','lab-rows'].forEach(id => {
       const body = document.getElementById(id);
       if (body) body.replaceChildren();
     });
