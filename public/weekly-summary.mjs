@@ -1,4 +1,5 @@
 import {SNAPSHOT_URL, validateSnapshot} from './snapshot-contract.mjs';
+import {seasonMode} from './season-mode.mjs';
 
 const TEAM_ALIASES = {
   AZ:'ARI', ARI:'ARI', CWS:'CHW', CHW:'CHW', KC:'KCR', KCR:'KCR',
@@ -60,21 +61,25 @@ function ensureWeeklySummary() {
 
   const glance = document.createElement('div');
   glance.className = 'section';
+  glance.id = 'weekly-glance-section';
   glance.innerHTML = '<h2>Week at a Glance</h2><div id="weekly-glance" class="summary weekly-summary"></div>';
   note.insertAdjacentElement('afterend', glance);
 
   const opp = document.createElement('div');
   opp.className = 'section';
+  opp.id = 'weekly-opponent-snapshot-section';
   opp.innerHTML = '<h2>Opponent Week Snapshot</h2><div class="tablewrap"><table><thead><tr><th>Day</th><th>Hitter Games</th><th>MLB Opponents Faced</th><th>Probable Opposing SPs</th><th>Our Projected SP Starts</th></tr></thead><tbody id="weekly-opponent-snapshot"></tbody></table></div>';
   glance.insertAdjacentElement('afterend', opp);
 
   const view = document.createElement('div');
   view.className = 'section';
+  view.id = 'weekly-opponent-view-section';
   view.innerHTML = '<h2>Weekly Opponent View</h2><h3>Hitter Opponents</h3><div class="tablewrap"><table><thead><tr><th>Hitter</th><th>Scheduled MLB Opponents</th></tr></thead><tbody id="weekly-opponent-hitters"></tbody></table></div><h3>Projected SP Starts</h3><div class="tablewrap"><table><thead><tr><th>Starter</th><th>Scheduled Start / Opponent</th></tr></thead><tbody id="weekly-opponent-starters"></tbody></table></div><div class="note" style="margin-top:8px">The snapshot does not identify the current fantasy matchup, so this view uses only verified Desert Rats roster and MLB schedule data.</div>';
   opp.insertAdjacentElement('afterend', view);
 
   const teams = document.createElement('div');
   teams.className = 'section';
+  teams.id = 'weekly-team-snapshot-section';
   teams.innerHTML = '<h2>Roster Schedule by MLB Team</h2><div class="tablewrap"><table><thead><tr><th>MLB Team</th><th>Desert Rats Hitters</th><th>Games</th><th>Opponents</th><th>Home / Road</th><th>Probable SP Coverage</th></tr></thead><tbody id="weekly-team-snapshot"></tbody></table></div><div class="note" style="margin-top:8px">Opponent quality is not color-graded until a verified strength source is connected. This section shows the verified schedule only.</div>';
   opp.insertAdjacentElement('afterend', teams);
 }
@@ -215,6 +220,12 @@ function renderOpponentView(hitterBody, starterBody, hitters, starters, schedule
 
 function renderSummary(data) {
   ensureWeeklySummary();
+  const mode = seasonMode(data);
+  for (const id of ['weekly-glance-section','weekly-opponent-snapshot-section','weekly-opponent-view-section','weekly-team-snapshot-section']) {
+    const section = document.getElementById(id);
+    if (section) section.hidden = mode.offseason;
+  }
+  if (mode.offseason) return;
   const host = document.getElementById('weekly-glance');
   const body = document.getElementById('weekly-opponent-snapshot');
   const opponentHitters = document.getElementById('weekly-opponent-hitters');
