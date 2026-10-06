@@ -40,6 +40,7 @@ on:
       - 'test_daily_trends.mjs'
       - 'test_daily_matchups.mjs'
       - 'test_ui_ownership.mjs'
+      - 'test_season_mode.mjs'
       - 'public/pitcher-today.mjs'
       - 'public/weekly-summary.mjs'
       - 'public/fic-weekly.mjs'
@@ -47,6 +48,7 @@ on:
       - 'public/fa-filters.mjs'
       - 'public/player-lab.mjs'
       - 'public/snapshot-contract.mjs'
+      - 'public/season-mode.mjs'
   schedule:
   - cron: '45 5 * * *'
     timezone: "America/Phoenix"
@@ -82,7 +84,7 @@ jobs:
           node-version: '24'
 
       - name: Verify website freshness contract
-        run: node --test test_snapshot_contract.mjs test_rb_weekly.mjs test_daily_trends.mjs test_daily_matchups.mjs test_ui_ownership.mjs
+        run: node --test test_snapshot_contract.mjs test_rb_weekly.mjs test_daily_trends.mjs test_daily_matchups.mjs test_ui_ownership.mjs test_season_mode.mjs
 
       - name: Collect Fantrax once
         run: python fantrax_refresh.py --root "$RUNNER_TEMP/fantasygm" --league-id gxq8uqpqmg5m5edj --no-prompt
@@ -139,6 +141,7 @@ jobs:
           cp public/fa-filters.mjs dist/public/fa-filters.mjs
           cp public/player-lab.mjs dist/public/player-lab.mjs
           cp public/snapshot-contract.mjs dist/public/snapshot-contract.mjs
+          cp public/season-mode.mjs dist/public/season-mode.mjs
           cp public/fantasygm.json dist/public/fantasygm.json
           sed -i 's#</body>#<script type="module" src="public/fic-weekly.mjs"></script>\n<script type="module" src="public/pl-weekly.mjs"></script>\n</body>#' dist/index.html
 
