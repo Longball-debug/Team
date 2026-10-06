@@ -391,5 +391,5 @@ ensureActivityFilter();
 ensureStatColumns();
 document.getElementById('fa-search')?.addEventListener('input', render);
 document.getElementById('fa-type')?.addEventListener('change', render);
-document.querySelectorAll('.reloadbtn').forEach(btn => btn.addEventListener('click', load));
+document.querySelector('#freeagents .reloadbtn')?.addEventListener('click', load);
 load();
