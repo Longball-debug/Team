@@ -23,6 +23,7 @@ on:
       - 'public/rb-weekly.mjs'
       - 'mlb_pitcher_logs.py'
       - 'add_pitcher_logs.py'
+      - 'test_pitcher_identity.py'
       - 'add_recent_14d_stats.py'
       - 'add_player_lab_stats.py'
       - 'add_statcast_exit_velocity.py'
