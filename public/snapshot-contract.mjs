@@ -233,10 +233,18 @@ function cleanFicMatchups(value) {
       };
     }
   }
+  const fantraxIdsByName = {};
+  if (value.fantrax_ids_by_name && typeof value.fantrax_ids_by_name === 'object') {
+    for (const [name, id] of Object.entries(value.fantrax_ids_by_name)) {
+      if (typeof name === 'string' && name && typeof id === 'string' && id) fantraxIdsByName[name] = id;
+    }
+  }
   return {
     source:typeof value.source === 'string' ? value.source : null,
     status:value.status === 'verified' ? 'verified' : 'unavailable',
     sample_rule:typeof value.sample_rule === 'string' ? value.sample_rule : null,
+    identity_rule:typeof value.identity_rule === 'string' ? value.identity_rule : null,
+    fantrax_ids_by_name:fantraxIdsByName,
     players,
   };
 }
