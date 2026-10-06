@@ -1,6 +1,7 @@
 import './player-lab.mjs';
 import {ficDailyRating} from './daily-matchups.mjs';
 import {SNAPSHOT_URL, validateSnapshot} from './snapshot-contract.mjs';
+import {seasonMode} from './season-mode.mjs';
 
 let data = null;
 
@@ -88,12 +89,14 @@ function ensureActivityFilter() {
   select.addEventListener('change', render);
 }
 
-function ensureStatColumns() {
+function ensureStatColumns(mode={offseason:false}) {
   const body = document.getElementById('fa-rows');
   const table = body?.closest('table');
   const row = table?.querySelector('thead tr');
   if (!row) return;
-  row.innerHTML = '<th>Signal</th><th>Player</th><th>MLB</th><th>Pos</th><th>14D Pts</th><th>14D PPG</th><th>vs Rats</th><th>Trend</th><th>Next Wk</th><th>Wk +2</th><th>FIC</th>';
+  row.innerHTML = mode.offseason
+    ? '<th>Signal</th><th>Player</th><th>MLB</th><th>Pos</th><th>14D Pts</th><th>14D PPG</th><th>vs Rats</th><th>Trend</th>'
+    : '<th>Signal</th><th>Player</th><th>MLB</th><th>Pos</th><th>14D Pts</th><th>14D PPG</th><th>vs Rats</th><th>Trend</th><th>Next Wk</th><th>Wk +2</th><th>FIC</th>';
   const wrap = table.closest('.tablewrap');
   if (wrap && !document.getElementById('fa-14d-note')) {
     const note = document.createElement('div');
@@ -239,15 +242,15 @@ function percentileRank(value, peers) {
   return (below + equal * 0.5) / sorted.length;
 }
 
-function overallSignal(player, allFreeAgents, weeks) {
+function overallSignal(player, allFreeAgents, weeks, mode={offseason:false}) {
   if (!hasRecentStats(player)) return {label:'NOT ENOUGH DATA', tone:'gray', title:'Overall signal requires verified recent fantasy production.'};
 
   const sameType = allFreeAgents.filter(p => isPitcher(p) === isPitcher(player) && hasRecentStats(p));
   const pct = percentileRank(player.ppg14, sameType.map(p => p.ppg14));
   const t = trend(player);
-  const next = scheduleSummary(player, weeks[0]);
-  const later = scheduleSummary(player, weeks[1]);
-  const fic = ficSummary(player, weeks);
+  const next = mode.offseason ? {tone:'gray'} : scheduleSummary(player, weeks[0]);
+  const later = mode.offseason ? {tone:'gray'} : scheduleSummary(player, weeks[1]);
+  const fic = mode.offseason ? {tone:'gray'} : ficSummary(player, weeks);
 
   let score = 0;
   const reasons = [];
@@ -262,15 +265,17 @@ function overallSignal(player, allFreeAgents, weeks) {
   else if (t.tone === 'red') { score -= 1; reasons.push('falling trend'); }
   else if (t.label === 'Steady') reasons.push('steady trend');
 
-  if (next.tone === 'green') { score += 1; reasons.push('easy next-week schedule'); }
-  else if (next.tone === 'red') { score -= 1; reasons.push('tough next-week schedule'); }
+  if (!mode.offseason) {
+    if (next.tone === 'green') { score += 1; reasons.push('easy next-week schedule'); }
+    else if (next.tone === 'red') { score -= 1; reasons.push('tough next-week schedule'); }
 
-  if (later.tone === 'green') { score += 0.5; reasons.push('easy week+2 schedule'); }
-  else if (later.tone === 'red') { score -= 0.5; reasons.push('tough week+2 schedule'); }
+    if (later.tone === 'green') { score += 0.5; reasons.push('easy week+2 schedule'); }
+    else if (later.tone === 'red') { score -= 0.5; reasons.push('tough week+2 schedule'); }
 
-  if (!isPitcher(player)) {
-    if (fic.tone === 'green') { score += 0.5; reasons.push('positive verified FIC context'); }
-    else if (fic.tone === 'red') { score -= 0.5; reasons.push('negative verified FIC context'); }
+    if (!isPitcher(player)) {
+      if (fic.tone === 'green') { score += 0.5; reasons.push('positive verified FIC context'); }
+      else if (fic.tone === 'red') { score -= 0.5; reasons.push('negative verified FIC context'); }
+    }
   }
 
   if (score >= 2) return {label:'LOOK', tone:'green', title:`Overall signal: ${reasons.join(' · ')}.`};
@@ -298,7 +303,8 @@ function textCell(value, title='') {
 
 function render() {
   if (!data) return;
-  ensureStatColumns();
+  const mode = seasonMode(data);
+  ensureStatColumns(mode);
   const body = document.getElementById('fa-rows');
   if (!body) return;
   const q = String(document.getElementById('fa-search')?.value || '').trim().toLowerCase();
@@ -334,7 +340,7 @@ function render() {
   body.replaceChildren();
   for (const player of rows) {
     const tr = document.createElement('tr');
-    const signal = overallSignal(player, allFreeAgents, weeks);
+    const signal = overallSignal(player, allFreeAgents, weeks, mode);
     tr.append(pillCell(signal.label, signal.tone, signal.title));
     tr.append(textCell(player.name));
     tr.append(textCell(player.mlbTeam));
@@ -345,19 +351,21 @@ function render() {
     tr.append(pillCell(upgrade.label, upgrade.tone, upgrade.title));
     const t = trend(player);
     tr.append(pillCell(t.label, t.tone));
-    for (const week of [weeks[0], weeks[1]]) {
-      const summary = scheduleSummary(player, week);
-      tr.append(pillCell(summary.label, summary.tone, summary.title));
+    if (!mode.offseason) {
+      for (const week of [weeks[0], weeks[1]]) {
+        const summary = scheduleSummary(player, week);
+        tr.append(pillCell(summary.label, summary.tone, summary.title));
+      }
+      const fic = ficSummary(player, weeks);
+      tr.append(pillCell(fic.label, fic.tone, fic.title));
     }
-    const fic = ficSummary(player, weeks);
-    tr.append(pillCell(fic.label, fic.tone, fic.title));
     body.append(tr);
   }
 
   if (!rows.length) {
     const tr = document.createElement('tr');
     const td = document.createElement('td');
-    td.colSpan = 11;
+    td.colSpan = mode.offseason ? 8 : 11;
     td.className = 'empty';
     td.textContent = 'No verified matching free agents.';
     tr.append(td);
@@ -372,7 +380,9 @@ function render() {
     const source = recent?.start_date && recent?.end_date
       ? ` Sorted by 14-day fantasy points, high to low. Trend compares verified 7D vs 30D FP/G. 14D window: ${recent.start_date} through ${recent.end_date}.`
       : ' 14-day fantasy-point feed is not verified in the current snapshot.';
-    note.textContent = `${activityLabel}${source}${dates} LOOK/WATCH/PASS combines 14D PPG rank among available peers, verified trend, next-week and week+2 Baseball Monster schedule ease, plus verified FIC context for hitters. vs Rats compares each candidate's verified 14D FP/G with the lowest verified Desert Rats FP/G at a shared usable position; ±1.00 FP/G is treated as the close-call band. Opponents come from MLB Stats API; no signal is based on unverified data.`;
+    note.textContent = mode.offseason
+      ? `OFFSEASON MODE. ${activityLabel}${source} LOOK/WATCH/PASS uses recent production rank and verified trend only; forward schedule and FIC inputs are intentionally excluded. vs Rats compares each candidate's verified 14D FP/G with the lowest verified Desert Rats FP/G at a shared usable position; ±1.00 FP/G is treated as the close-call band.`
+      : `${activityLabel}${source}${dates} LOOK/WATCH/PASS combines 14D PPG rank among available peers, verified trend, next-week and week+2 Baseball Monster schedule ease, plus verified FIC context for hitters. vs Rats compares each candidate's verified 14D FP/G with the lowest verified Desert Rats FP/G at a shared usable position; ±1.00 FP/G is treated as the close-call band. Opponents come from MLB Stats API; no signal is based on unverified data.`;
   }
 }
 
