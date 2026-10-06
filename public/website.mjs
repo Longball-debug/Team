@@ -2,7 +2,7 @@ import {appendRbSummary} from './rb-weekly.mjs';
 import {SNAPSHOT_URL, validateSnapshot} from './snapshot-contract.mjs';
 import {buildDailyTrendRows, dailyTrendFor, formatDailyFpg, selectDailyHitterActions} from './daily-trends.mjs';
 import {ficDailyRating, pitcherHandFromFic} from './daily-matchups.mjs';
-import {applySeasonMode, seasonMode} from './season-mode.mjs';
+import {applySeasonMode} from './season-mode.mjs';
 
 let snapshot = null;
 
