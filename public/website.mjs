@@ -193,6 +193,7 @@ function renderWeeklyTable(id, records, schedule, kind, data) {
     const playerCell = document.createElement('td');
     playerCell.textContent = record.Player;
     playerCell.dataset.playerName = record.Player;
+    playerCell.dataset.playerId = record['Player ID'] || '';
     appendRbSummary(playerCell, data, record, kind);
     tr.append(playerCell);
     const teamKey = scheduleTeamKey(record.MLB, schedule);
@@ -319,7 +320,10 @@ function renderDailyMatchups(hitters, schedule, pool, ficMatchups) {
     const trend = dailyTrendFor(poolById.get(player['Player ID']));
     const tr = document.createElement('tr');
     tr.append(cell(player.Player));
-    const ficItem = ficMatchups?.status === 'verified' ? ficMatchups.players?.[player.Player]?.[phoenixDateString()] : null;
+    const ficMappedId = ficMatchups?.fantrax_ids_by_name?.[player.Player];
+    const ficItem = ficMatchups?.status === 'verified' && ficMappedId === player['Player ID']
+      ? ficMatchups.players?.[player.Player]?.[phoenixDateString()]
+      : null;
     tr.append(dailyHitterMatchupCell(games, ficItem));
     const matchupRating = games.length ? ficDailyRating(ficItem) : {label:'—', tone:'gray', detail:null};
     appendRatingCell(tr, matchupRating.label, matchupRating.tone, matchupRating.detail || '');
