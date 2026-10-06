@@ -10,6 +10,7 @@ import argparse
 import json
 import re
 import urllib.request
+from datetime import datetime, timezone
 from html.parser import HTMLParser
 from pathlib import Path
 from typing import Any
@@ -165,6 +166,7 @@ def attach(snapshot: dict[str, Any]) -> dict[str, Any]:
     result: dict[str, Any] = {
         "source": "Baseball Monster Ease Rankings",
         "source_url": URL,
+        "fetched_at": datetime.now(timezone.utc).isoformat(),
         "status": "unavailable",
         "definition": "Higher Ease Value means an easier opponent.",
         "hitters": {},
