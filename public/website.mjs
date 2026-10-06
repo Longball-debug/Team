@@ -2,6 +2,7 @@ import {appendRbSummary} from './rb-weekly.mjs';
 import {SNAPSHOT_URL, validateSnapshot} from './snapshot-contract.mjs';
 import {buildDailyTrendRows, dailyTrendFor, formatDailyFpg, selectDailyHitterActions} from './daily-trends.mjs';
 import {ficDailyRating, pitcherHandFromFic} from './daily-matchups.mjs';
+import {applySeasonMode, seasonMode} from './season-mode.mjs';
 
 let snapshot = null;
 
@@ -382,6 +383,7 @@ function renderPitcherRecentGames(pitchers, recent) {
 }
 
 function renderCore(data) {
+  const mode = applySeasonMode(data);
   const roster = rosterRecords(data);
   const hitters = roster.filter(p => !p.pitcher);
   const pitchers = roster.filter(p => p.pitcher);
@@ -397,9 +399,15 @@ function renderCore(data) {
 
   const note = document.getElementById('weekly-note');
   if (note) {
-    note.textContent = data.weekly_schedule
-      ? `Verified MLB schedule: ${data.weekly_schedule.week_start} through ${data.weekly_schedule.week_end}. Weekly matchup cells use Baseball Monster opponent Ease when verified: green = easier, yellow = average, red = tougher, gray = not verified.`
-      : 'Verified weekly MLB schedule unavailable.';
+    note.textContent = mode.offseason
+      ? 'OFFSEASON MODE: weekly matchup grids are hidden. Historical roster and trend data remain available.'
+      : data.weekly_schedule
+        ? `Verified MLB schedule: ${data.weekly_schedule.week_start} through ${data.weekly_schedule.week_end}. Weekly matchup cells use Baseball Monster opponent Ease when verified: green = easier, yellow = average, red = tougher, gray = not verified.`
+        : 'Verified weekly MLB schedule unavailable.';
+  }
+  const dailyNote = document.getElementById('daily-note');
+  if (dailyNote && mode.offseason) {
+    dailyNote.textContent = 'OFFSEASON MODE: daily matchup/action sections are hidden. Recent trend and historical pitcher information remain available.';
   }
   renderSummary(data, roster);
 }
