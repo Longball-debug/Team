@@ -7,7 +7,7 @@ import json
 import re
 import urllib.parse
 import urllib.request
-from datetime import date
+from datetime import date, datetime, timezone
 from pathlib import Path
 from typing import Any
 from rotoballer_ratings import parse_ratings, sheet_csv_url, merge_ratings
@@ -93,6 +93,7 @@ def attach(snapshot: dict[str, Any]) -> dict[str, Any]:
     week_end = schedule.get("week_end")
     result: dict[str, Any] = {
         "source": "RotoBaller weekly Start/Sit",
+        "fetched_at": datetime.now(timezone.utc).isoformat(),
         "status": "unavailable",
         "week_start": week_start,
         "week_end": week_end,
