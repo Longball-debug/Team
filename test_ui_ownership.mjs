@@ -22,3 +22,15 @@ test('Free Agent enriched columns stay defined by the FA module', () => {
     assert.ok(fa.includes(`<th>${heading}</th>`), `missing enriched column: ${heading}`);
   }
 });
+
+
+test('Player Lab has one renderer owner', () => {
+  assert.equal(/function\s+playerLab\s*\(/.test(website), false, 'legacy website.mjs Player Lab renderer must stay removed');
+  assert.equal(website.includes("replaceRows('lab-rows'"), false, 'website.mjs must not write Player Lab rows');
+  assert.equal(website.includes("'lab-rows'"), false, 'website.mjs must not clear or otherwise own Player Lab rows');
+  assert.equal(fa.includes("lab-rows"), false, 'Free Agent module must not own Player Lab rows');
+});
+
+test('Core reload skips dedicated Free Agent and Player Lab pages', () => {
+  assert.ok(website.includes("!btn.closest('#freeagents') && !btn.closest('#lab')"));
+});
