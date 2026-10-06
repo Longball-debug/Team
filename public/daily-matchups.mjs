@@ -36,9 +36,11 @@ export function pitcherListDailyRating(pitcherList, day, playerName) {
   if (pitcherList?.status !== 'verified') return null;
   const key = norm(playerName);
   const rows = Array.isArray(pitcherList?.days?.[day]) ? pitcherList.days[day] : [];
-  const item = rows.find(row => row?.pitcher_key === key) ||
-    rows.find(row => norm(row?.pitcher) === key);
-  if (!item || !Number.isInteger(item.rank)) return null;
+  const exact = rows.filter(row => row?.pitcher_key === key);
+  const matches = exact.length ? exact : rows.filter(row => norm(row?.pitcher) === key);
+  if (matches.length !== 1) return null;
+  const item = matches[0];
+  if (!Number.isInteger(item.rank)) return null;
   return {
     label:`PL #${item.rank} · ${item.tier || 'Unverified Tier'}`,
     tone:pitcherListTone(item.tier),
