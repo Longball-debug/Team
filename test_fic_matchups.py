@@ -1,6 +1,7 @@
 import unittest
+from unittest.mock import patch
 
-from add_fic_matchups import parse_fic_html
+from add_fic_matchups import attach, parse_fic_html
 
 
 class FicParserTests(unittest.TestCase):
@@ -26,6 +27,46 @@ class FicParserTests(unittest.TestCase):
 
     def test_ignores_non_matchup_tables(self):
         self.assertEqual(parse_fic_html('<table><tr><th>Name</th></tr><tr><td>x</td></tr></table>'), [])
+
+
+    def test_attach_records_fantrax_identity_for_unique_match(self):
+        snapshot = {
+            "teams": [{"Team": "Desert Rats", "Team ID": "rats"}],
+            "pool": [
+                {"fantraxId": "fx-1", "name": "Alex Bregman", "teamId": "rats", "availability": "Rostered", "positions": ["3B"]},
+            ],
+        }
+        source = '''
+        <table>
+          <tr><th>Batter</th><th>Pitcher</th><th>AB</th><th>BB</th><th>OPS</th></tr>
+          <tr><td>A. Bregman, 3B (R)</td><td>M. King (R)</td><td>8</td><td>2</td><td>1.025</td></tr>
+        </table>
+        '''
+        with patch("add_fic_matchups._lookahead_days", return_value=["2026-10-05"]), patch("add_fic_matchups._fetch_day", return_value=source):
+            attach(snapshot)
+        fic = snapshot["fic_matchups"]
+        self.assertEqual(fic["fantrax_ids_by_name"]["Alex Bregman"], "fx-1")
+        self.assertIn("Alex Bregman", fic["players"])
+
+    def test_attach_rejects_ambiguous_duplicate_name_identity(self):
+        snapshot = {
+            "teams": [{"Team": "Desert Rats", "Team ID": "rats"}],
+            "pool": [
+                {"fantraxId": "fx-1", "name": "Alex Bregman", "teamId": "rats", "availability": "Rostered", "positions": ["3B"]},
+                {"fantraxId": "fx-2", "name": "Alex Bregman", "teamId": None, "availability": "Free Agent", "positions": ["3B"]},
+            ],
+        }
+        source = '''
+        <table>
+          <tr><th>Batter</th><th>Pitcher</th><th>AB</th><th>BB</th><th>OPS</th></tr>
+          <tr><td>A. Bregman, 3B (R)</td><td>M. King (R)</td><td>8</td><td>2</td><td>1.025</td></tr>
+        </table>
+        '''
+        with patch("add_fic_matchups._lookahead_days", return_value=["2026-10-05"]), patch("add_fic_matchups._fetch_day", return_value=source):
+            attach(snapshot)
+        fic = snapshot["fic_matchups"]
+        self.assertNotIn("Alex Bregman", fic["players"])
+        self.assertEqual(fic["days"]["2026-10-05"]["ambiguous_target_matches"], 1)
 
 
 if __name__ == '__main__':
