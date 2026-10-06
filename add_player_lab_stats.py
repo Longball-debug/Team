@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import argparse
 import json
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from zoneinfo import ZoneInfo
 
@@ -149,6 +149,7 @@ def main() -> None:
     ambiguous_source_names = sum(sum(v is None for v in source.values()) for source in source_maps)
     data["player_lab"] = {
         "source": "MLB Stats API · FantasyGM2027 scoring",
+        "fetched_at": datetime.now(timezone.utc).isoformat(),
         "season": season,
         "recent_end_date": end.isoformat(),
         "window7_start": windows[7]["start"],
