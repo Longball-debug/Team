@@ -34,8 +34,10 @@ function decorateHitters(data, days) {
       if (!target || target.querySelector('[data-pitcher-list]')) return;
       const text = target.textContent || '';
       const candidates = dayRows(data, day);
-      const match = candidates.find(item => text.includes(item.pitcher)) || candidates.find(item => norm(text).includes(item.pitcher_key));
-      if (!match) return;
+      const exact = candidates.filter(item => text.includes(item.pitcher));
+      const matches = exact.length ? exact : candidates.filter(item => norm(text).includes(item.pitcher_key));
+      if (matches.length !== 1) return;
+      const match = matches[0];
       const small = document.createElement('small');
       small.append(badge(match, 'Opp SP PL'));
       target.append(small);
@@ -52,8 +54,9 @@ function decoratePitchers(data, days) {
       const target = cells[index + 1]?.querySelector('.match');
       if (!target || target.querySelector('[data-pitcher-list]')) return;
       const key = norm(player);
-      const match = dayRows(data, day).find(item => item.pitcher_key === key);
-      if (!match) return;
+      const matches = dayRows(data, day).filter(item => item.pitcher_key === key);
+      if (matches.length !== 1) return;
+      const match = matches[0];
       const small = document.createElement('small');
       small.append(badge(match));
       target.append(small);
