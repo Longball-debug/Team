@@ -1,7 +1,7 @@
 import unittest
 from unittest.mock import patch
 
-from add_recent_14d_stats import build_maps
+from add_recent_14d_stats import build_maps, pitcher_points
 from add_player_lab_stats import recent_map, season_map
 
 
@@ -55,6 +55,42 @@ class RecentIdentityTests(unittest.TestCase):
             result = season_map("hitting", 2026)
         self.assertIsNone(result["samename"])
 
+
+    def test_recent_pitcher_scoring_uses_role_sensitive_win_loss_values(self):
+        base = {
+            "inningsPitched": "1.0",
+            "strikeOuts": 0,
+            "earnedRuns": 0,
+            "hits": 0,
+            "baseOnBalls": 0,
+            "qualityStarts": 0,
+            "saves": 0,
+            "holds": 0,
+            "blownSaves": 0,
+            "gamesPitched": 1,
+        }
+        self.assertEqual(pitcher_points({**base, "gamesStarted": 1, "wins": 1, "losses": 0}), 7.0)
+        self.assertEqual(pitcher_points({**base, "gamesStarted": 0, "wins": 1, "losses": 0}), 4.0)
+        self.assertEqual(pitcher_points({**base, "gamesStarted": 1, "wins": 0, "losses": 1}), -3.0)
+        self.assertEqual(pitcher_points({**base, "gamesStarted": 0, "wins": 0, "losses": 1}), 0.0)
+
+    def test_mixed_role_window_with_decision_fails_closed(self):
+        stat = {
+            "inningsPitched": "10.0",
+            "strikeOuts": 10,
+            "earnedRuns": 3,
+            "hits": 8,
+            "baseOnBalls": 2,
+            "qualityStarts": 0,
+            "saves": 0,
+            "holds": 1,
+            "blownSaves": 0,
+            "gamesPitched": 3,
+            "gamesStarted": 1,
+            "wins": 1,
+            "losses": 0,
+        }
+        self.assertIsNone(pitcher_points(stat))
 
 if __name__ == "__main__":
     unittest.main()
