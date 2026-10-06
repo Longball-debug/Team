@@ -169,7 +169,9 @@ function cleanBaseballMonsterEase(value, now) {
 
 function cleanPitcherRecentGames(value, now) {
   if (!value || typeof value !== 'object' || !value.players || typeof value.players !== 'object') return null;
+  const fetchedAt = freshFetchedAt(value.fetched_at, now);
   const players = {};
+  if (!fetchedAt) return {source:value.source, season:value.season, fetched_at:null, players};
   for (const [name, item] of Object.entries(value.players)) {
     if (!item || typeof item !== 'object') continue;
     players[name] = {
@@ -195,7 +197,7 @@ function cleanPitcherRecentGames(value, now) {
       })) : [],
     };
   }
-  return {source:value.source, season:value.season, fetched_at:freshFetchedAt(value.fetched_at, now), players};
+  return {source:value.source, season:value.season, fetched_at:fetchedAt, players};
 }
 
 function cleanRecent14(value, now) {
