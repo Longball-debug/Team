@@ -24,3 +24,12 @@ test('uses only explicit verified FIC pitcher hand markers',()=>{
  assert.equal(pitcherHandFromFic({pitcher:'Unknown Pitcher'}),null);
  assert.equal(pitcherHandFromFic(null),null);
 });
+
+
+test('rejects ambiguous Pitcher List matches instead of taking first result',()=>{
+ const source={status:'verified',days:{'2026-10-02':[
+  {rank:7,pitcher:'Same Name',pitcher_key:'samename',matchup:'vs ARI',tier:'Auto Start'},
+  {rank:20,pitcher:'Same Name',pitcher_key:'samename',matchup:'@ LAD',tier:'Questionable Start'}
+ ]}};
+ assert.equal(pitcherListDailyRating(source,'2026-10-02','Same Name'),null);
+});
