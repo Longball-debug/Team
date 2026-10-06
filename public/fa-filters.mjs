@@ -1,4 +1,3 @@
-import './player-lab.mjs';
 import {ficDailyRating} from './daily-matchups.mjs';
 import {SNAPSHOT_URL, validateSnapshot} from './snapshot-contract.mjs';
 import {seasonMode} from './season-mode.mjs';
