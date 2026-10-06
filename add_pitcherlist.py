@@ -9,6 +9,7 @@ import html
 import json
 import re
 import urllib.request
+from datetime import datetime, timezone
 from html.parser import HTMLParser
 from pathlib import Path
 from typing import Any
@@ -153,6 +154,7 @@ def attach(snapshot: dict[str, Any]) -> dict[str, Any]:
     result: dict[str, Any] = {
         "source": "Pitcher List public SP Streamer rankings",
         "archive_url": ARCHIVE_URL,
+        "fetched_at": datetime.now(timezone.utc).isoformat(),
         "status": "unavailable",
         "days": {day: [] for day in days},
     }
