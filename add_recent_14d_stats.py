@@ -21,8 +21,8 @@ HIT = {
 }
 PIT = {
     "IP": 2.0, "K": 1.5, "ER": -2.0, "H": -0.5, "BB": -0.5,
-    "QS": 5.0, "W": 5.0, "SV": 5.0, "HLD": 5.0, "L": -5.0,
-    "BS": -3.0,
+    "QS": 5.0, "SP_W": 5.0, "RP_W": 2.0, "SV": 5.0, "HLD": 5.0,
+    "SP_L": -5.0, "RP_L": -2.0, "BS": -3.0,
 }
 
 
@@ -79,12 +79,29 @@ def hitter_points(s: dict) -> float:
     )
 
 
-def pitcher_points(s: dict) -> float:
+def pitcher_points(s: dict) -> float | None:
+    """Score an aggregate pitching window without inventing mixed-role W/L values.
+
+    Pure starters use SP W/L (+5/-5); pure relievers use RP W/L (+2/-2).
+    If the window contains both starts and relief appearances and also contains
+    a win or loss, aggregate MLB stats cannot identify which role produced the
+    decision, so the fantasy-point value is left unverified instead of guessed.
+    """
+    games_started = num(s, "gamesStarted")
+    games_pitched = num(s, "gamesPitched") or num(s, "gamesPlayed")
+    wins = num(s, "wins")
+    losses = num(s, "losses")
+    mixed_role = games_started > 0 and games_pitched > games_started
+    if mixed_role and (wins or losses):
+        return None
+    relief_only = games_started == 0
+    win_value = PIT["RP_W"] if relief_only else PIT["SP_W"]
+    loss_value = PIT["RP_L"] if relief_only else PIT["SP_L"]
     return (
         innings(s.get("inningsPitched")) * PIT["IP"] + num(s, "strikeOuts") * PIT["K"]
         + num(s, "earnedRuns") * PIT["ER"] + num(s, "hits") * PIT["H"] + num(s, "baseOnBalls") * PIT["BB"]
-        + num(s, "qualityStarts") * PIT["QS"] + num(s, "wins") * PIT["W"] + num(s, "saves") * PIT["SV"]
-        + num(s, "holds") * PIT["HLD"] + num(s, "losses") * PIT["L"] + num(s, "blownSaves") * PIT["BS"]
+        + num(s, "qualityStarts") * PIT["QS"] + wins * win_value + num(s, "saves") * PIT["SV"]
+        + num(s, "holds") * PIT["HLD"] + losses * loss_value + num(s, "blownSaves") * PIT["BS"]
     )
 
 
@@ -135,7 +152,12 @@ def build_maps(start: str, end: str) -> tuple[dict, dict]:
         s = split.get("stat") or {}
         games = int(num(s, "gamesPitched") or num(s, "gamesPlayed"))
         pts = pitcher_points(s)
-        _put_unique(pitcher_map, norm(name), {"points": round(pts, 1), "games": games, "ppg": round(pts / games, 2) if games else None})
+        _put_unique(pitcher_map, norm(name), {
+            "points": round(pts, 1) if pts is not None else None,
+            "games": games,
+            "ppg": round(pts / games, 2) if pts is not None and games else None,
+            "scoring_status": "verified" if pts is not None else "mixed-role W/L not verifiable from aggregate stats",
+        })
     return hitter_map, pitcher_map
 
 
