@@ -14,7 +14,9 @@ FantasyGM2027 is the Desert Rats decision-support site for LONGBALL. Fantrax is 
 2. MLB schedule / probable data: MLB schedule and probable-start context.
 3. External analysis sources: Pitcher List, Baseball Monster, Fantasy Info Central, RotoBaller, Statcast/FanGraphs-derived inputs only when their adapter marks the data verified.
 4. Missing external data must display as Not verified, Not rated, unavailable, or equivalent. Never infer a value merely to fill a cell.
-5. Every externally derived dataset should retain a verification status and source date when available.
+5. Every externally derived dataset retains a verification status and fetch timestamp when available.
+6. Time-sensitive external feeds (Baseball Monster, FIC, Pitcher List, RotoBaller) fail closed when their fetch timestamp is older than 36 hours. Stale values must never remain green/yellow/red as if current.
+7. Historical feeds may remain visible only when explicitly labeled as historical/recent-period data.
 
 ## UI ownership rule
 Each table/body has exactly one renderer owner. No second module may write, clear, or re-render the same DOM target.
@@ -79,7 +81,12 @@ The scoring engine must use the current LONGBALL rules. Pitcher W/L scoring is r
 - SP win +5, SP loss -5
 - RP win +2, RP loss -2
 
-Any future projection-to-points calculator must score W/L by actual game role, not merely by eligibility. SP/RP dual eligibility must not cause double interpretation.
+Any projection-to-points calculator must score W/L by actual game role, not merely by eligibility. SP/RP dual eligibility must not cause double interpretation.
+
+For aggregate 7/14/30-day MLB pitching windows:
+- pure-start windows use SP W/L scoring;
+- pure-relief windows use RP W/L scoring;
+- mixed start/relief windows containing a win or loss are marked unverified because aggregate MLB statistics do not reveal which role produced the decision. FantasyGM must not guess.
 
 ## Player identity
 Display names are not sufficient as durable join keys.
@@ -91,7 +98,7 @@ Target identity model:
 External adapters should move toward canonical IDs rather than direct `player.name` lookup.
 
 ## Offseason mode
-The site now has an explicit season mode. It is IN-SEASON during the March–September calendar window, or when the verified weekly schedule contains at least 20 MLB games. Otherwise it is OFFSEASON.
+The site now has an explicit season mode. It is IN-SEASON during the April–September calendar window, or when the verified weekly schedule contains at least 20 MLB games. Otherwise it is OFFSEASON. This keeps spring training in offseason mode while allowing a real late-March regular-season week to activate in-season mode.
 
 In OFFSEASON MODE:
 - Show a visible OFFSEASON MODE badge.
@@ -114,7 +121,9 @@ Before deployment, tests must cover:
 - UI ownership regression
 - Free Agent Board must retain enriched columns after filter changes and refresh
 - Missing/stale external sources must fail closed to Not verified / unavailable
-- Role-sensitive SP/RP scoring when projection scoring is introduced
+- Role-sensitive SP/RP scoring for recent windows and future projections
+- Ambiguous player-name joins must fail closed rather than select the first match
+- Time-sensitive external sources must fail closed when stale
 
 ## Change-control rule
 Do not add a new metric or data source unless it changes a real roster, start/sit, add/drop, trade, keeper or draft decision. Prefer removing duplicate logic over adding parallel logic.
