@@ -389,5 +389,5 @@ async function load() {
 
 ensureLayout();
 document.getElementById('lab-search')?.addEventListener('input', render);
-document.querySelectorAll('.reloadbtn').forEach(btn => btn.addEventListener('click', load));
+document.querySelector('#lab .reloadbtn')?.addEventListener('click', load);
 load();
