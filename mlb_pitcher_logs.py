@@ -84,16 +84,16 @@ def longball_points(stat: dict, rp_only: bool = False) -> float:
     return round(points, 2)
 
 
-def _all_mlb_players(season: int) -> dict[str, dict]:
+def _all_mlb_players(season: int) -> dict[str, list[dict]]:
     payload = _get("sports/1/players", {"season": season})
     people = payload.get("people")
     if not isinstance(people, list):
         raise ValueError("MLB player catalogue unavailable")
-    result = {}
+    result: dict[str, list[dict]] = {}
     for person in people:
         key = _norm(person.get("fullName"))
         if key and isinstance(person.get("id"), int):
-            result[key] = person
+            result.setdefault(key, []).append(person)
     return result
 
 
@@ -127,10 +127,17 @@ def collect_pitcher_logs(snapshot: dict, season: int = SEASON) -> dict:
     results = {}
     for player, pos in pitchers:
         name = str(player.get("Player") or "").strip()
-        person = catalogue.get(_norm(name))
-        if not person:
-            results[name] = {"source_status": "NOT VERIFIED", "games": []}
+        fantrax_id = str(player.get("Player ID") or "").strip()
+        people = catalogue.get(_norm(name), [])
+        if len(people) != 1 or not fantrax_id:
+            results[name] = {
+                "fantrax_id": fantrax_id or None,
+                "source_status": "NOT VERIFIED",
+                "identity_status": "AMBIGUOUS" if len(people) > 1 else "NOT VERIFIED",
+                "games": [],
+            }
             continue
+        person = people[0]
         splits = _game_log(person["id"], season)
         is_sp = "SP" in pos
         rp_only = "RP" in pos and "SP" not in pos
@@ -159,7 +166,9 @@ def collect_pitcher_logs(snapshot: dict, season: int = SEASON) -> dict:
             if len(selected) == 3:
                 break
         results[name] = {
+            "fantrax_id": fantrax_id,
             "mlb_id": person["id"],
+            "identity_status": "VERIFIED",
             "mode": "starts" if is_sp else "appearances",
             "source_status": "VERIFIED" if selected else "NOT VERIFIED",
             "games": selected,
