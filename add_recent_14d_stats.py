@@ -109,6 +109,15 @@ def player_name(split: dict) -> str:
     return str(player.get("fullName") or player.get("name") or "").strip()
 
 
+def _put_unique(target: dict, key: str, record: dict) -> None:
+    if not key:
+        return
+    if key in target:
+        target[key] = None
+    else:
+        target[key] = record
+
+
 def build_maps(start: str, end: str) -> tuple[dict, dict]:
     hitter_map, pitcher_map = {}, {}
     for split in splits("hitting", start, end):
@@ -118,7 +127,7 @@ def build_maps(start: str, end: str) -> tuple[dict, dict]:
         s = split.get("stat") or {}
         games = int(num(s, "gamesPlayed"))
         pts = hitter_points(s)
-        hitter_map[norm(name)] = {"points": round(pts, 1), "games": games, "ppg": round(pts / games, 2) if games else None}
+        _put_unique(hitter_map, norm(name), {"points": round(pts, 1), "games": games, "ppg": round(pts / games, 2) if games else None})
     for split in splits("pitching", start, end):
         name = player_name(split)
         if not name:
@@ -126,7 +135,7 @@ def build_maps(start: str, end: str) -> tuple[dict, dict]:
         s = split.get("stat") or {}
         games = int(num(s, "gamesPitched") or num(s, "gamesPlayed"))
         pts = pitcher_points(s)
-        pitcher_map[norm(name)] = {"points": round(pts, 1), "games": games, "ppg": round(pts / games, 2) if games else None}
+        _put_unique(pitcher_map, norm(name), {"points": round(pts, 1), "games": games, "ppg": round(pts / games, 2) if games else None})
     return hitter_map, pitcher_map
 
 
@@ -150,9 +159,19 @@ def main() -> None:
     start_s, end_s = start.isoformat(), end.isoformat()
 
     hitters, pitchers = build_maps(start_s, end_s)
+    pool = data.get("pool") or []
+    pool_name_counts: dict[tuple[bool, str], int] = {}
+    for p in pool:
+        key = (is_pitcher(p.get("positions")), norm(p.get("name")))
+        pool_name_counts[key] = pool_name_counts.get(key, 0) + 1
+
     matched = 0
-    for p in data.get("pool") or []:
-        record = (pitchers if is_pitcher(p.get("positions")) else hitters).get(norm(p.get("name")))
+    ambiguous_pool_names = 0
+    for p in pool:
+        pitching = is_pitcher(p.get("positions"))
+        key = norm(p.get("name"))
+        unique_pool_identity = bool(key) and pool_name_counts.get((pitching, key), 0) == 1
+        record = (pitchers if pitching else hitters).get(key) if unique_pool_identity else None
         if record:
             p["points14"] = record["points"]
             p["games14"] = record["games"]
@@ -162,12 +181,18 @@ def main() -> None:
             p["points14"] = None
             p["games14"] = None
             p["ppg14"] = None
+            if key and not unique_pool_identity:
+                ambiguous_pool_names += 1
 
+    ambiguous_source_names = sum(v is None for v in hitters.values()) + sum(v is None for v in pitchers.values())
     data["recent_14d"] = {
         "source": "MLB Stats API · FantasyGM2027 scoring",
         "start_date": start_s,
         "end_date": end_s,
         "matched_pool_players": matched,
+        "ambiguous_pool_names": ambiguous_pool_names,
+        "ambiguous_source_names": ambiguous_source_names,
+        "identity_rule": "normalized-name fallback only when unique in both MLB source and Fantrax pool",
     }
 
     tmp = args.snapshot.with_suffix(".tmp")
