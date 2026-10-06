@@ -38,6 +38,7 @@ on:
       - 'public/daily-matchups.mjs'
       - 'test_daily_trends.mjs'
       - 'test_daily_matchups.mjs'
+      - 'test_ui_ownership.mjs'
       - 'public/pitcher-today.mjs'
       - 'public/weekly-summary.mjs'
       - 'public/fic-weekly.mjs'
@@ -80,7 +81,7 @@ jobs:
           node-version: '24'
 
       - name: Verify website freshness contract
-        run: node --test test_snapshot_contract.mjs test_rb_weekly.mjs test_daily_trends.mjs test_daily_matchups.mjs
+        run: node --test test_snapshot_contract.mjs test_rb_weekly.mjs test_daily_trends.mjs test_daily_matchups.mjs test_ui_ownership.mjs
 
       - name: Collect Fantrax once
         run: python fantrax_refresh.py --root "$RUNNER_TEMP/fantasygm" --league-id gxq8uqpqmg5m5edj --no-prompt
