@@ -6,6 +6,8 @@ const website = await readFile(new URL('./public/website.mjs', import.meta.url),
 const fa = await readFile(new URL('./public/fa-filters.mjs', import.meta.url), 'utf8');
 const ficWeekly = await readFile(new URL('./public/fic-weekly.mjs', import.meta.url), 'utf8');
 const plWeekly = await readFile(new URL('./public/pl-weekly.mjs', import.meta.url), 'utf8');
+const weeklySummary = await readFile(new URL('./public/weekly-summary.mjs', import.meta.url), 'utf8');
+const pitcherToday = await readFile(new URL('./public/pitcher-today.mjs', import.meta.url), 'utf8');
 
 test('Free Agent Board has one renderer owner', () => {
   assert.equal(/function\s+freeAgents\s*\(/.test(website), false, 'legacy website.mjs freeAgents renderer must stay removed');
@@ -49,4 +51,20 @@ test('FIC consumers require Fantrax identity before using name-keyed matchup dat
 test('Pitcher List decorators reject ambiguous name matches', () => {
   assert.ok(plWeekly.includes('if (matches.length !== 1) return;'));
   assert.equal(plWeekly.includes('.find(item => item.pitcher_key === key)'), false);
+});
+
+
+test('Free Agent and Player Lab modules are independent', () => {
+  assert.equal(fa.includes("import './player-lab.mjs'"), false);
+});
+
+test('offseason hides derived weekly summary sections too', () => {
+  assert.ok(weeklySummary.includes("const mode = seasonMode(data)"));
+  assert.ok(weeklySummary.includes("section.hidden = mode.offseason"));
+});
+
+test('pitcher recent-game UI requires verified Fantrax identity and no name fallback', () => {
+  assert.ok(pitcherToday.includes("item?.identity_status !== 'VERIFIED'"));
+  assert.ok(pitcherToday.includes("item?.fantrax_id !== player['Player ID']"));
+  assert.equal(pitcherToday.includes("Object.keys(recent?.players || {}).find"), false);
 });
