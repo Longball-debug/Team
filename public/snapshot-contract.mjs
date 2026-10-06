@@ -1,5 +1,14 @@
 export const SNAPSHOT_URL = 'https://raw.githubusercontent.com/Longball-debug/Team/main/public/fantasygm.json';
 
+function freshFetchedAt(value, now, maxAgeHours=36) {
+  if (typeof value !== 'string') return null;
+  const stamp = Date.parse(value);
+  if (!Number.isFinite(stamp)) return null;
+  const age = now - stamp;
+  if (age < -300000 || age > maxAgeHours * 3600000) return null;
+  return value;
+}
+
 function cleanPool(pool) {
   if (!Array.isArray(pool)) return [];
   return pool.map(p => ({
@@ -130,7 +139,7 @@ function cleanFaLookahead(value) {
   };
 }
 
-function cleanBaseballMonsterEase(value) {
+function cleanBaseballMonsterEase(value, now) {
   if (!value || typeof value !== 'object') return null;
   const cleanSide = side => {
     const out = {};
@@ -146,17 +155,19 @@ function cleanBaseballMonsterEase(value) {
   };
   const hitters = cleanSide(value.hitters);
   const pitchers = cleanSide(value.pitchers);
+  const fetchedAt = freshFetchedAt(value.fetched_at, now);
   return {
     source:typeof value.source === 'string' ? value.source : null,
     source_url:typeof value.source_url === 'string' && value.source_url.startsWith('https://baseballmonster.com/') ? value.source_url : null,
-    status:value.status === 'verified' && Object.keys(hitters).length >= 28 && Object.keys(pitchers).length >= 28 ? 'verified' : 'unavailable',
+    fetched_at:fetchedAt,
+    status:fetchedAt && value.status === 'verified' && Object.keys(hitters).length >= 28 && Object.keys(pitchers).length >= 28 ? 'verified' : 'unavailable',
     definition:typeof value.definition === 'string' ? value.definition : null,
     hitters,
     pitchers,
   };
 }
 
-function cleanPitcherRecentGames(value) {
+function cleanPitcherRecentGames(value, now) {
   if (!value || typeof value !== 'object' || !value.players || typeof value.players !== 'object') return null;
   const players = {};
   for (const [name, item] of Object.entries(value.players)) {
@@ -184,33 +195,41 @@ function cleanPitcherRecentGames(value) {
       })) : [],
     };
   }
-  return {source:value.source, season:value.season, players};
+  return {source:value.source, season:value.season, fetched_at:freshFetchedAt(value.fetched_at, now), players};
 }
 
-function cleanRecent14(value) {
+function cleanRecent14(value, now) {
   if (!value || typeof value !== 'object') return null;
   return {
     source:typeof value.source === 'string' ? value.source : null,
+    fetched_at:freshFetchedAt(value.fetched_at, now),
     start_date:typeof value.start_date === 'string' ? value.start_date : null,
     end_date:typeof value.end_date === 'string' ? value.end_date : null,
     matched_pool_players:Number.isFinite(value.matched_pool_players) ? value.matched_pool_players : null,
+    ambiguous_pool_names:Number.isFinite(value.ambiguous_pool_names) ? value.ambiguous_pool_names : null,
+    ambiguous_source_names:Number.isFinite(value.ambiguous_source_names) ? value.ambiguous_source_names : null,
+    identity_rule:typeof value.identity_rule === 'string' ? value.identity_rule : null,
   };
 }
 
-function cleanPlayerLab(value) {
+function cleanPlayerLab(value, now) {
   if (!value || typeof value !== 'object') return null;
   return {
     source:typeof value.source === 'string' ? value.source : null,
+    fetched_at:freshFetchedAt(value.fetched_at, now),
     season:Number.isFinite(value.season) ? value.season : null,
     recent_end_date:typeof value.recent_end_date === 'string' ? value.recent_end_date : null,
     window7_start:typeof value.window7_start === 'string' ? value.window7_start : null,
     window30_start:typeof value.window30_start === 'string' ? value.window30_start : null,
     matched_pool_players:Number.isFinite(value.matched_pool_players) ? value.matched_pool_players : null,
+    ambiguous_pool_names:Number.isFinite(value.ambiguous_pool_names) ? value.ambiguous_pool_names : null,
+    ambiguous_source_names:Number.isFinite(value.ambiguous_source_names) ? value.ambiguous_source_names : null,
+    identity_rule:typeof value.identity_rule === 'string' ? value.identity_rule : null,
   };
 }
 
 
-function cleanFicMatchups(value) {
+function cleanFicMatchups(value, now) {
   if (!value || typeof value !== 'object' || !value.players || typeof value.players !== 'object') return null;
   const players = {};
   for (const [name, dates] of Object.entries(value.players)) {
@@ -241,9 +260,11 @@ function cleanFicMatchups(value) {
       if (typeof name === 'string' && name && typeof id === 'string' && id) fantraxIdsByName[name] = id;
     }
   }
+  const fetchedAt = freshFetchedAt(value.fetched_at, now);
   return {
     source:typeof value.source === 'string' ? value.source : null,
-    status:value.status === 'verified' ? 'verified' : 'unavailable',
+    fetched_at:fetchedAt,
+    status:fetchedAt && value.status === 'verified' ? 'verified' : 'unavailable',
     sample_rule:typeof value.sample_rule === 'string' ? value.sample_rule : null,
     identity_rule:typeof value.identity_rule === 'string' ? value.identity_rule : null,
     fantrax_ids_by_name:fantraxIdsByName,
@@ -251,7 +272,7 @@ function cleanFicMatchups(value) {
   };
 }
 
-function cleanPitcherList(value) {
+function cleanPitcherList(value, now) {
   if (!value || typeof value !== 'object' || !value.days || typeof value.days !== 'object') return null;
   const days = {};
   for (const [day, rows] of Object.entries(value.days)) {
@@ -264,9 +285,11 @@ function cleanPitcherList(value) {
       source_url:typeof item?.source_url === 'string' && item.source_url.startsWith('https://pitcherlist.com/') ? item.source_url : null,
     })).filter(item => item.rank && item.pitcher && item.pitcher_key) : [];
   }
+  const fetchedAt = freshFetchedAt(value.fetched_at, now);
   return {
     source:typeof value.source === 'string' ? value.source : null,
-    status:value.status === 'verified' ? 'verified' : 'unavailable',
+    fetched_at:fetchedAt,
+    status:fetchedAt && value.status === 'verified' ? 'verified' : 'unavailable',
     days,
   };
 }
@@ -294,13 +317,13 @@ export function validateSnapshot(value, now = Date.now()) {
     transactions:Array.isArray(value.transactions) ? value.transactions.map(t => ({...t})) : null,
     weekly_schedule:cleanWeeklySchedule(value.weekly_schedule),
     fa_lookahead:cleanFaLookahead(value.fa_lookahead),
-    baseball_monster_ease:cleanBaseballMonsterEase(value.baseball_monster_ease),
-    rotoballer_weekly:value.rotoballer_weekly && typeof value.rotoballer_weekly === 'object' ? value.rotoballer_weekly : null,
-    fic_matchups:cleanFicMatchups(value.fic_matchups),
-    pitcher_list:cleanPitcherList(value.pitcher_list),
-    pitcher_recent_games:cleanPitcherRecentGames(value.pitcher_recent_games),
-    recent_14d:cleanRecent14(value.recent_14d),
-    player_lab:cleanPlayerLab(value.player_lab),
+    baseball_monster_ease:cleanBaseballMonsterEase(value.baseball_monster_ease, now),
+    rotoballer_weekly:value.rotoballer_weekly && typeof value.rotoballer_weekly === 'object' && freshFetchedAt(value.rotoballer_weekly.fetched_at, now) ? value.rotoballer_weekly : null,
+    fic_matchups:cleanFicMatchups(value.fic_matchups, now),
+    pitcher_list:cleanPitcherList(value.pitcher_list, now),
+    pitcher_recent_games:cleanPitcherRecentGames(value.pitcher_recent_games, now),
+    recent_14d:cleanRecent14(value.recent_14d, now),
+    player_lab:cleanPlayerLab(value.player_lab, now),
     statcast2026:cleanStatcastSummary(value.statcast2026),
     unavailable:Array.isArray(value.unavailable) ? [...value.unavailable] : [],
   };
