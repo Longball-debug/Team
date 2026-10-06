@@ -21,3 +21,9 @@ test('verified full schedule week can keep mode in-season outside normal calenda
 test('winter is offseason', () => {
   assert.equal(seasonMode(snapshot(0), new Date('2027-01-15T12:00:00-07:00')).offseason, true);
 });
+
+
+test('spring training remains offseason until a full regular-season week appears', () => {
+  assert.equal(seasonMode(snapshot(8), new Date('2027-03-10T12:00:00-07:00')).offseason, true);
+  assert.equal(seasonMode(snapshot(90), new Date('2027-03-29T12:00:00-07:00')).inSeason, true);
+});
