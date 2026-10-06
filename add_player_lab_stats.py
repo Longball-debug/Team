@@ -29,9 +29,10 @@ def recent_map(group: str, start: str, end: str) -> dict[str, dict]:
         games = int(num(s, "gamesPlayed") or num(s, "gamesPitched"))
         pts = pitcher_points(s) if group == "pitching" else hitter_points(s)
         _put_unique(out, norm(name), {
-            "points": round(pts, 1),
+            "points": round(pts, 1) if pts is not None else None,
             "games": games,
-            "ppg": round(pts / games, 2) if games else None,
+            "ppg": round(pts / games, 2) if pts is not None and games else None,
+            "scoring_status": "verified" if pts is not None else "mixed-role W/L not verifiable from aggregate stats",
         })
     return out
 
