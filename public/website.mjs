@@ -43,7 +43,7 @@ function show(page) {
 document.querySelectorAll('[data-page]').forEach(btn => btn.addEventListener('click', () => show(btn.dataset.page)));
 document.querySelectorAll('.homebtn').forEach(btn => btn.addEventListener('click', () => show('home')));
 document.querySelectorAll('.reloadbtn').forEach(btn => {
-  if (!btn.closest('#freeagents')) btn.addEventListener('click', () => refresh());
+  if (!btn.closest('#freeagents') && !btn.closest('#lab')) btn.addEventListener('click', () => refresh());
 });
 
 function desertRatsTeam(data) {
@@ -399,20 +399,6 @@ function renderCore(data) {
   renderSummary(data, roster);
 }
 
-function playerLab(data, query='') {
-  const q = query.trim().toLowerCase();
-  const records = (data.pool || []).filter(p => {
-    if (!q) return false;
-    return [p.name,p.mlbTeam,formatPositions(p.positions),p.teamName,p.availability].join(' ').toLowerCase().includes(q);
-  }).slice(0,200).map(p => ({
-    Player:p.name,
-    MLB:p.mlbTeam,
-    Positions:formatPositions(p.positions),
-    Ownership:p.teamName || p.availability || 'Unavailable',
-  }));
-  replaceRows('lab-rows', records, ['Player','MLB','Positions','Ownership']);
-}
-
 async function refresh() {
   try {
     setStatus('Loading verified snapshot…');
@@ -423,22 +409,19 @@ async function refresh() {
     // The enriched Free Agent Board is owned by fa-filters.mjs.
     // Do not render the legacy four-column free-agent table here; doing so
     // overwrites the enriched board during the five-minute core refresh.
-    playerLab(snapshot, document.getElementById('lab-search')?.value || '');
     const stamp = new Date(snapshot.generated_at).toLocaleString();
     setStatus(`Last Updated: ${stamp} · ${snapshot.source}`);
   } catch {
     snapshot = null;
     setStatus('Current data unavailable: the latest complete refresh could not be verified.');
-    ['daily-matchups','daily-trends','daily-pitcher-games','weekly-hitters','weekly-pitchers','lab-rows'].forEach(id => {
+    ['daily-matchups','daily-trends','daily-pitcher-games','weekly-hitters','weekly-pitchers'].forEach(id => {
       const body = document.getElementById(id);
       if (body) body.replaceChildren();
     });
   }
 }
 
-// Free Agent Board filter events are handled by fa-filters.mjs so every
-// filter path uses the same enriched render pipeline.
-document.getElementById('lab-search').addEventListener('input', e => snapshot && playerLab(snapshot, e.target.value));
+// Free Agent Board and Player Lab events are owned by their dedicated modules.
 
 const initial = location.hash.replace('#','');
 if (['daily','weekly','freeagents','lab'].includes(initial)) show(initial);
