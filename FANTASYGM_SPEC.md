@@ -91,11 +91,20 @@ Target identity model:
 External adapters should move toward canonical IDs rather than direct `player.name` lookup.
 
 ## Offseason mode
-When no active MLB regular-season schedule is available:
+The site now has an explicit season mode. It is IN-SEASON during the March–September calendar window, or when the verified weekly schedule contains at least 20 MLB games. Otherwise it is OFFSEASON.
+
+In OFFSEASON MODE:
+- Show a visible OFFSEASON MODE badge.
 - Keep final/recent historical data clearly dated.
-- Prefer roster, keeper, projection, trade and draft-prep information.
-- Daily probable-pitcher and forward-week matchup cells should show unavailable/not verified rather than fabricate future context.
-- A future UI pass may explicitly label OFFSEASON MODE and hide irrelevant in-season columns.
+- Hide Daily Actions and hitter daily-matchup sections.
+- Convert the daily pitcher section to Recent Form: player, last-three FP and trend only.
+- Hide Weekly Outlook matchup grids until in-season mode resumes.
+- Free Agent Board hides Next Wk, Wk +2 and FIC columns.
+- Free Agent LOOK/WATCH/PASS excludes forward schedule and FIC weights; it uses only recent-production rank and verified trend.
+- Keep vs Rats, recent production and trend visible.
+- Never fabricate future schedule or matchup context.
+
+This mode rule is deterministic and test-covered. If MLB materially changes its regular-season calendar, update the rule and its tests together.
 
 ## Testing requirements
 Before deployment, tests must cover:
