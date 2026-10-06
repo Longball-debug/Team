@@ -149,7 +149,6 @@ def collect_pitcher_logs(snapshot: dict, season: int = SEASON) -> dict:
         person = people[0]
         splits = _game_log(person["id"], season)
         is_sp = "SP" in pos
-        rp_only = "RP" in pos and "SP" not in pos
         selected = []
         for split in reversed(splits):
             stat = split.get("stat") or {}
