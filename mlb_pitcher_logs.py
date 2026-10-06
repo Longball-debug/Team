@@ -6,7 +6,7 @@ import re
 import unicodedata
 import urllib.parse
 import urllib.request
-from datetime import datetime
+from datetime import datetime, timezone
 
 BASE = "https://statsapi.mlb.com/api/v1"
 SEASON = datetime.now().year
@@ -182,4 +182,4 @@ def collect_pitcher_logs(snapshot: dict, season: int = SEASON) -> dict:
             "games": selected,
         }
 
-    return {"source": "MLB Stats API", "season": season, "players": results}
+    return {"source": "MLB Stats API", "season": season, "fetched_at": datetime.now(timezone.utc).isoformat(), "players": results}
