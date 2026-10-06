@@ -5,6 +5,7 @@ import {readFile} from 'node:fs/promises';
 const website = await readFile(new URL('./public/website.mjs', import.meta.url), 'utf8');
 const fa = await readFile(new URL('./public/fa-filters.mjs', import.meta.url), 'utf8');
 const ficWeekly = await readFile(new URL('./public/fic-weekly.mjs', import.meta.url), 'utf8');
+const plWeekly = await readFile(new URL('./public/pl-weekly.mjs', import.meta.url), 'utf8');
 
 test('Free Agent Board has one renderer owner', () => {
   assert.equal(/function\s+freeAgents\s*\(/.test(website), false, 'legacy website.mjs freeAgents renderer must stay removed');
@@ -42,4 +43,10 @@ test('FIC consumers require Fantrax identity before using name-keyed matchup dat
   assert.ok(website.includes("ficMatchups?.fantrax_ids_by_name?.[player.Player]"));
   assert.ok(website.includes("playerCell.dataset.playerId = record['Player ID']"));
   assert.ok(ficWeekly.includes("source.fantrax_ids_by_name?.[name] !== playerId"));
+});
+
+
+test('Pitcher List decorators reject ambiguous name matches', () => {
+  assert.ok(plWeekly.includes('if (matches.length !== 1) return;'));
+  assert.equal(plWeekly.includes('.find(item => item.pitcher_key === key)'), false);
 });
