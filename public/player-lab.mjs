@@ -1,4 +1,5 @@
 import {SNAPSHOT_URL, validateSnapshot} from './snapshot-contract.mjs';
+import {seasonMode} from './season-mode.mjs';
 
 let data = null;
 let selectedId = null;
@@ -196,7 +197,8 @@ function rankBand(rank) {
   return {label:'Lower half', detail:`${rank.rank} of ${rank.total} eligible peers`};
 }
 
-function volumeSignal(sched) {
+function volumeSignal(sched, offseason=false) {
+  if (offseason) return {label:'Offseason', detail:'No regular-season games scheduled'};
   if (!sched) return {label:'Unavailable', detail:'Verified weekly schedule missing'};
   if (sched.games >= 7) return {label:'Heavy slate', detail:`${sched.games} games this week`};
   if (sched.games === 6) return {label:'Normal slate', detail:'6 games this week'};
@@ -241,7 +243,7 @@ function renderDetail(player) {
   const sched = scheduleContext(player);
   const rank = positionRank(player);
   const rankSignal = rankBand(rank);
-  const volume = volumeSignal(sched);
+  const volume = volumeSignal(sched, seasonMode(data).offseason);
   const profile = profileSignal(sm);
   let seasonCards = '';
   if (pitcher) {
