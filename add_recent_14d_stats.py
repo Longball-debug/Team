@@ -110,6 +110,7 @@ def splits(group: str, start: str, end: str) -> list[dict]:
         "stats": "byDateRange",
         "group": group,
         "sportIds": 1,
+        "playerPool": "ALL",
         "startDate": start,
         "endDate": end,
         "limit": 5000,

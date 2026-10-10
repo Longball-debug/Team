@@ -11,7 +11,7 @@ from add_recent_14d_stats import _put_unique, fetch_json, hitter_points, is_pitc
 
 
 def stat_splits(group: str, stats: str, **params) -> list[dict]:
-    query = {"stats": stats, "group": group, "sportIds": 1, "limit": 5000, "hydrate": "person,team", **params}
+    query = {"stats": stats, "group": group, "sportIds": 1, "playerPool": "ALL", "limit": 5000, "hydrate": "person,team", **params}
     payload = fetch_json("stats", query)
     blocks = payload.get("stats") or []
     if not blocks:
