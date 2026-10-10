@@ -75,8 +75,8 @@ function ensureActivityFilter() {
   select.className = 'select';
   select.setAttribute('aria-label', 'Free agent recent activity');
   for (const [value, label] of [
-    ['recent','Recent MLB stats'],
     ['all','All free agents'],
+    ['recent','Recent MLB stats'],
     ['nostats','No recent stats']
   ]) {
     const option = document.createElement('option');
@@ -309,7 +309,7 @@ function render() {
   const q = String(document.getElementById('fa-search')?.value || '').trim().toLowerCase();
   const type = document.getElementById('fa-type')?.value || 'all';
   const position = document.getElementById('fa-position')?.value || 'all';
-  const activity = document.getElementById('fa-activity')?.value || 'recent';
+  const activity = document.getElementById('fa-activity')?.value || 'all';
   const weeks = Array.isArray(data.fa_lookahead?.weeks) ? data.fa_lookahead.weeks.slice(0, 2) : [];
 
   const allFreeAgents = (data.pool || []).filter(isFreeAgent);
