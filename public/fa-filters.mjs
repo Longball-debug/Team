@@ -334,7 +334,7 @@ function render() {
     const bg = Number.isFinite(b.ppg14) ? b.ppg14 : -Infinity;
     if (bg !== ag) return bg - ag;
     return String(a.name || '').localeCompare(String(b.name || ''));
-  }).slice(0, 250);
+  });
 
   body.replaceChildren();
   for (const player of rows) {
