@@ -374,7 +374,7 @@ function render() {
     pager.append(button);
   }
   const count = document.createElement('span');
-  count.textContent = ` Page ${pageIndex + 1} of ${pages} � ${rows.length.toLocaleString()} matching players `;
+  count.textContent = ` Page ${pageIndex + 1} of ${pages} | ${rows.length.toLocaleString()} matching players `;
   pager.append(count);
   body.replaceChildren();
   const fragment = document.createDocumentFragment();
