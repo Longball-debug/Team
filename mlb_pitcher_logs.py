@@ -81,6 +81,11 @@ def longball_points(stat: dict) -> float | None:
     saves = _num(stat, "saves")
     holds = _num(stat, "holds")
     blown = _num(stat, "blownSaves")
+    # A solo official no-hitter requires a complete game of at least nine
+    # innings with zero hits. Never credit a partial combined appearance.
+    no_hitter = (stat.get("gamesPlayed") == 1 and gs == 1
+                 and _num(stat, "completeGames") == 1 and ip >= 9
+                 and hits == 0)
     points = (
         ip * 2
         + k * 1.5
@@ -97,6 +102,7 @@ def longball_points(stat: dict) -> float | None:
         - _num(stat, "homeRuns") * 2
         + _num(stat, "pickoffs")
         + _num(stat, "shutouts") * 2
+        + (5 if no_hitter else 0)
     )
     return round(points, 2)
 
