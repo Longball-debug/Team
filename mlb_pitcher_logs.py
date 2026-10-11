@@ -89,6 +89,11 @@ def longball_points(stat: dict) -> float:
         + (saves + holds) * 5
         + loss * loss_points
         - blown * 3
+        + _num(stat, "completeGames") * 2
+        - _num(stat, "hitBatsmen")
+        - _num(stat, "homeRuns") * 2
+        + _num(stat, "pickoffs")
+        + _num(stat, "shutouts") * 2
     )
     return round(points, 2)
 

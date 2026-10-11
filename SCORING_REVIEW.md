@@ -1,6 +1,6 @@
 # LONGBALL 2027 scoring reconciliation - October 11, 2026
 
-Reviewed repository head `8ae643faffb22fff56cb91c3161f0b4b59e2d8cf`. No scoring weights changed.
+Reviewed repository head `8ae643faffb22fff56cb91c3161f0b4b59e2d8cf`. Step 4 changed no weights; Step 5 updates supported categories as detailed below.
 
 ## Authoritative evidence
 
@@ -11,12 +11,12 @@ The complete earlier written project plan is a proposal/history, not proof of co
 | Group | Category | Written plan | Fantrax 2027 configured | Calculator |
 |---|---|---|---|---|
 | HITTING | BB | 1 | Default: 1 | 1 |
-| HITTING | IBB | 1 | Default: 1 | Omitted |
+| HITTING | IBB | 1 | Default: 1 | 1 |
 | HITTING | HR | 5 | Default: 5 | 5 |
 | HITTING | CYC | 5 | Default: 5 | Omitted |
 | HITTING | GIDP | -2 | Default: -2 | -2 |
 | HITTING | SB | 3 | Default: 3 | 3 |
-| HITTING | 3B | 3 | Default: 4 | 3 |
+| HITTING | 3B | 3 | Default: 4 | 4 |
 | HITTING | CS | -2 | Default: -2 | -2 |
 | HITTING | 2B | 3 | Default: 3 | 3 |
 | HITTING | 1B | 1.5 | Default: 1.5 | 1.5 |
@@ -29,25 +29,25 @@ The complete earlier written project plan is a proposal/history, not proof of co
 | HITTING | SO | -0.5 | Default: -0.5 | -0.5 |
 | PITCHING | BB | -1 | Default: -0.5 | -0.5 |
 | PITCHING | QS | 5 | Default: 5 | 5 |
-| PITCHING | CG | 2 | Default: 2 | Omitted |
+| PITCHING | CG | 2 | Default: 2 | 2 |
 | PITCHING | SVH | Separate SV +4 / HLD +3 | Default: 5 | SV +5 plus HLD +5 |
 | PITCHING | IP | 3 | Default: 2 | 2 |
 | PITCHING | H | -0.75 | Default: -0.5 | -0.5 |
-| PITCHING | HR | -2 | Default: -2 | Omitted |
+| PITCHING | HR | -2 | Default: -2 | -2 |
 | PITCHING | K | 1.5 | Default: 1.5 | 1.5 |
 | PITCHING | L | SP -5 / RP -2 | Default: -5, RP: -2 | Actual game role: SP -5 / RP -2 |
 | PITCHING | ER | -2 | Default: -2 | -2 |
 | PITCHING | BS | -3 | Default: -3 | -3 |
-| PITCHING | PKO | 1 | Default: 1 | Omitted |
+| PITCHING | PKO | 1 | Default: 1 | 1 |
 | PITCHING | W | SP +5 / RP +2 | Default: 5, RP: 2 | Actual game role: SP +5 / RP +2 |
-| PITCHING | HB | -1 | Default: -1 | Omitted |
+| PITCHING | HB | -1 | Default: -1 | -1 |
 | PITCHING | NH | 5 | Default: 5 | Omitted |
-| PITCHING | SHO | 2 | Default: 2 | Omitted |
+| PITCHING | SHO | 2 | Default: 2 | 2 |
 
 ## Confirmed gaps and impact
 
-- Triples: calculator +3 versus configured +4, so it undercounts one point per triple under 2027 settings.
-- Hitting CYC +5, IBB +1 and PKO -1 are omitted. Pitching CG +2, HB -1, HR -2, NH +5, PKO +1 and SHO +2 are omitted. Whether BB includes IBB and the exact cumulative scoring semantics need reconciliation before adding categories.
+- Triples: corrected from +3 to configured +4 in Step 5.
+- Hitting CYC +5 and PKO -1 and pitching NH +5 remain omitted. Step 5 implements supported IBB, CG, HB, HR allowed, pitching PKO and SHO using verified cumulative settings and MLB fields.
 - Fantrax expresses W/L as Default +5/-5 with RP +2/-2 overrides, not an explicit SP entry. The calculators apply overrides by actual MLB appearance role. Whether Fantrax applies them by lineup slot, eligibility or appearance role remains unverified.
 - Fantrax uses combined SVH +5. The calculator adds saves and holds separately at +5 each; confirm the combined category definition, especially whether one appearance can count both.
 - Aggregate QS depends on the MLB qualityStarts field; missing fields default to zero. Game logs derive QS from starts, innings and earned runs. Source coverage for omitted categories is not yet established.
@@ -57,3 +57,12 @@ The complete earlier written project plan is a proposal/history, not proof of co
 ## Decisions required
 
 Confirm whether the product should evaluate the existing 2026 roster under configured 2027 rules or move to the separate 2027 league, and whether the historical written proposal should replace the current Fantrax configuration. Verify RP override and cumulative minor-category semantics. All configured numeric weights above were retrieved; these behavior/intent questions remain unresolved. No guessed settings, transactions or scoring updates were made.
+
+
+## Step 5 alignment
+
+Owner confirmed 2027 is primary and configured Fantrax 2027 settings govern. Read-only readiness inspection found all 12 teams and 10,615 eligibility-bearing pool entries. Pool validation passed with 10,362 free agents, 248 other-team players, 5 Desert Rats players and 5 unknown entries. Desert Rats, Newberry and Midland each have five players. The 2026 historical collector is retained until a complete useful 2027 replacement exists; it is explicitly labeled historical and never merged with 2027 ownership.
+
+Triples now score +4. IBB +1 is additive: Fantrax BB and IBB both have cumulative=true, and official MLB season statistics expose baseOnBalls and intentionalWalks. Pitching CG +2, HB -1, HR allowed -2, PKO +1 and SHO +2 are additive in Fantrax and official MLB game statistics expose completeGames, hitBatsmen, homeRuns, pickoffs and shutouts. Both pitching calculators now use those fields. Updated terms contribute only source-reported values; missing source coverage remains a limitation, not proof of zero events.
+
+Cycles, hitter picked-off penalties and no-hitter bonuses remain omitted because reliable matching source fields were not verified. Aggregate QS source coverage also remains unresolved. W/L override values are verified, but Fantrax's RP application semantics (appearance versus lineup slot) remain unverified. SVH is configured +5 and cumulative=true; exact combined-category event treatment remains unverified, so the existing saves-plus-holds calculation is retained and marked partial. No guessed bonuses or league-switch occurred. All calculated trends, rankings and comparisons consume the same refreshed 7/14/30-day scoring values; MLB season metrics and Statcast remain explicitly 2026 historical statistics.

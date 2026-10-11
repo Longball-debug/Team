@@ -79,7 +79,7 @@ class PublicationTests(unittest.TestCase):
         )
         self.assertEqual(
             result['source'],
-            'Fantrax REST API · getPlayerIds verified names',
+            'Historical LONGBALL 2026 roster/ownership; 2026 MLB statistics evaluated with partial Fantrax 2027 scoring. Primary 2027 roster pending completeness. Fantrax REST API',
         )
         self.assertEqual(
             result['generated_at'],

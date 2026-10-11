@@ -15,14 +15,15 @@ BASE = "https://statsapi.mlb.com/api/v1"
 
 # FantasyGM2027 / LONGBALL 2027 working scoring.
 HIT = {
-    "1B": 1.5, "2B": 3.0, "3B": 3.0, "HR": 5.0, "RBI": 2.0,
+    "1B": 1.5, "2B": 3.0, "3B": 4.0, "HR": 5.0, "RBI": 2.0,
     "R": 1.0, "SB": 3.0, "BB": 1.0, "SO": -0.5, "HBP": 1.0,
-    "SF": 1.0, "SH": 1.0, "GIDP": -2.0, "CS": -2.0,
+    "SF": 1.0, "SH": 1.0, "GIDP": -2.0, "CS": -2.0, "IBB": 1.0,
 }
 PIT = {
     "IP": 2.0, "K": 1.5, "ER": -2.0, "H": -0.5, "BB": -0.5,
     "QS": 5.0, "SP_W": 5.0, "RP_W": 2.0, "SV": 5.0, "HLD": 5.0,
     "SP_L": -5.0, "RP_L": -2.0, "BS": -3.0,
+    "CG": 2.0, "HB": -1.0, "HR": -2.0, "PKO": 1.0, "SHO": 2.0,
 }
 
 
@@ -76,6 +77,7 @@ def hitter_points(s: dict) -> float:
         + num(s, "baseOnBalls") * HIT["BB"] + num(s, "strikeOuts") * HIT["SO"] + num(s, "hitByPitch") * HIT["HBP"]
         + num(s, "sacFlies") * HIT["SF"] + num(s, "sacBunts") * HIT["SH"]
         + num(s, "groundIntoDoublePlay") * HIT["GIDP"] + num(s, "caughtStealing") * HIT["CS"]
+        + num(s, "intentionalWalks") * HIT["IBB"]
     )
 
 
@@ -102,6 +104,9 @@ def pitcher_points(s: dict) -> float | None:
         + num(s, "earnedRuns") * PIT["ER"] + num(s, "hits") * PIT["H"] + num(s, "baseOnBalls") * PIT["BB"]
         + num(s, "qualityStarts") * PIT["QS"] + wins * win_value + num(s, "saves") * PIT["SV"]
         + num(s, "holds") * PIT["HLD"] + losses * loss_value + num(s, "blownSaves") * PIT["BS"]
+        + num(s, "completeGames") * PIT["CG"] + num(s, "hitBatsmen") * PIT["HB"]
+        + num(s, "homeRuns") * PIT["HR"] + num(s, "pickoffs") * PIT["PKO"]
+        + num(s, "shutouts") * PIT["SHO"]
     )
 
 
