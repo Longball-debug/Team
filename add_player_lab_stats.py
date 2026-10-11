@@ -33,7 +33,7 @@ def recent_map(group: str, start: str, end: str) -> dict[str, dict]:
             "games": games,
             "ppg": round(pts / games, 2) if pts is not None and games else None,
             "scoring_status": "verified" if pts is not None else "mixed-role W/L not verifiable from aggregate stats",
-        })
+        }, (split.get("player") or split.get("person") or {}).get("id"))
     return out
 
 
@@ -69,7 +69,7 @@ def season_map(group: str, season: int) -> dict[str, dict]:
                 "bb_pct": round(bb / pa * 100, 1) if pa else None,
                 "k_pct": round(so / pa * 100, 1) if pa else None,
                 "iso": round(slg - avg, 3) if slg is not None and avg is not None else None,
-            })
+            }, (split.get("player") or split.get("person") or {}).get("id"))
         else:
             bf = num(s, "battersFaced")
             so = num(s, "strikeOuts")
@@ -89,7 +89,7 @@ def season_map(group: str, season: int) -> dict[str, dict]:
                 "k": int(so),
                 "bb": int(bb),
                 "k_bb_pct": round((so - bb) / bf * 100, 1) if bf else None,
-            })
+            }, (split.get("player") or split.get("person") or {}).get("id"))
     return out
 
 
@@ -124,9 +124,9 @@ def main() -> None:
     matched = 0
     ambiguous_pool_names = 0
     for p in pool:
-        key = norm(p.get("name"))
+        key = f"mlb:{p['mlbId']}" if p.get("mlbId") else ""
         pitching = is_pitcher(p.get("positions"))
-        unique_pool_identity = bool(key) and pool_name_counts.get((pitching, key), 0) == 1
+        unique_pool_identity = bool(p.get("mlbId"))
         p7 = windows[7]["pitching" if pitching else "hitting"].get(key) if unique_pool_identity else None
         p30 = windows[30]["pitching" if pitching else "hitting"].get(key) if unique_pool_identity else None
         season_rec = (season_p if pitching else season_h).get(key) if unique_pool_identity else None
@@ -139,7 +139,7 @@ def main() -> None:
         p["seasonMetrics"] = season_rec
         if p7 or p30 or season_rec:
             matched += 1
-        elif key and not unique_pool_identity:
+        elif key and not p.get("mlbId") and not unique_pool_identity:
             ambiguous_pool_names += 1
 
     source_maps = [
@@ -158,7 +158,7 @@ def main() -> None:
         "matched_pool_players": matched,
         "ambiguous_pool_names": ambiguous_pool_names,
         "ambiguous_source_names": ambiguous_source_names,
-        "identity_rule": "normalized-name fallback only when unique in both MLB source and Fantrax pool",
+        "identity_rule": "Verified MLBAM ID; ambiguous or unresolved identities withheld",
     }
 
     tmp = args.snapshot.with_suffix(".tmp")

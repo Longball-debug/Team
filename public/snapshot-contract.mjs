@@ -13,6 +13,8 @@ function cleanPool(pool) {
   if (!Array.isArray(pool)) return [];
   return pool.map(p => ({
     fantraxId:p.fantraxId,
+    mlbId:Number.isInteger(p.mlbId) && p.mlbId > 0 ? p.mlbId : null,
+    identityStatus:p.identityStatus === "Verified" ? "Verified" : "Not verified",
     name:p.name,
     mlbTeam:p.mlbTeam,
     availability:p.availability,

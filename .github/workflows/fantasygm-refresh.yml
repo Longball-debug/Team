@@ -7,6 +7,8 @@ on:
     paths:
       - '.github/workflows/fantasygm-refresh.yml'
       - 'public_snapshot.py'
+      - 'player_identity.py'
+      - 'test_player_identity.py'
       - 'shared_snapshot.py'
       - 'mlb_schedule.py'
       - 'add_weekly_schedule.py'
@@ -92,6 +94,9 @@ jobs:
 
       - name: Build complete sanitized website snapshot
         run: python public_snapshot.py --root "$RUNNER_TEMP/fantasygm"
+
+      - name: Establish verified MLB player identifiers
+        run: python player_identity.py --snapshot public/fantasygm.json
 
       - name: Attach verified MLB weekly schedule
         run: python add_weekly_schedule.py --snapshot public/fantasygm.json

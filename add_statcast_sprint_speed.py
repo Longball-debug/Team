@@ -61,6 +61,8 @@ def parse_sprint_speed_csv(text: str, minimum_records: int = 500) -> list[dict]:
 
 
 def _stable_ids(player: dict) -> set[str]:
+    if player.get("mlbId") is not None:
+        return {str(player["mlbId"])} if str(player["mlbId"]).isdigit() else set()
     values = [player.get(key) for key in ("mlbId", "mlbPlayerId", "mlb_id", "baseballSavantId", "savantId")]
     statcast = player.get("statcast2026")
     if isinstance(statcast, dict):
@@ -83,6 +85,8 @@ def attach_sprint_speed(snapshot: dict, records: list[dict], fetched_at: str | N
     by_name: dict[str, list[dict]] = {}
     for player in pool:
         if not hitter_eligible(player):
+            continue
+        if player.get("identityStatus") == "Not verified":
             continue
         for player_id in _stable_ids(player):
             by_id.setdefault(player_id, []).append(player)
@@ -108,8 +112,8 @@ def attach_sprint_speed(snapshot: dict, records: list[dict], fetched_at: str | N
     for record in records:
         key = normalize_name(record["name"])
         candidates = by_id.get(record["savantId"], [])
-        if len(candidates) != 1:
-            candidates = by_name.get(key, []) if source_names.get(key) == 1 else []
+        if not candidates:
+            candidates = [p for p in by_name.get(key, []) if not _stable_ids(p)] if source_names.get(key) == 1 else []
         if len(candidates) != 1:
             if len(candidates) > 1 or source_names.get(key, 0) > 1:
                 ambiguous += 1

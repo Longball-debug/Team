@@ -320,7 +320,7 @@ function renderDetail(player) {
     <h2>Decision Signals</h2>
     <div class="summary">${signalCards}</div>
     <h2>Fantasy Context</h2>
-    <div class="summary">${contextCards}</div>
+    <div class="summary">${player.identityStatus === "Not verified" ? '<div role="alert">Player identity: Not verified. MLB statistics are withheld.</div>' : ""}${contextCards}</div>
     <h2>Best Available at Position</h2>
     ${renderAvailablePeers(player)}
     <h2>Season Performance</h2>

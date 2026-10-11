@@ -84,6 +84,8 @@ def parse_leaderboard_csv(text: str, minimum_records: int = 500) -> list[dict]:
 
 
 def _stable_ids(player: dict) -> set[str]:
+    if player.get("mlbId") is not None:
+        return {str(player["mlbId"])} if str(player["mlbId"]).isdigit() else set()
     values = [player.get(key) for key in ("mlbId", "mlbPlayerId", "mlb_id", "baseballSavantId", "savantId")]
     current = player.get("statcast2026")
     if isinstance(current, dict):
@@ -103,6 +105,8 @@ def attach_records(snapshot: dict, records: list[dict], fetched_at: str | None =
     for player in pool:
         if not hitter_eligible(player):
             continue
+        if player.get("identityStatus") == "Not verified":
+            continue
         for player_id in _stable_ids(player):
             by_id.setdefault(player_id, []).append(player)
         key = normalize_name(player.get("name"))
@@ -118,16 +122,17 @@ def attach_records(snapshot: dict, records: list[dict], fetched_at: str | None =
         player.pop("statcast2026", None)
 
     matched_ids: set[str] = set()
+    conflicted_ids: set[str] = set()
     ambiguous = 0
     unmatched = 0
     for record in records:
         candidates = by_id.get(record["savantId"], [])
-        if len(candidates) != 1:
+        if not candidates:
             candidates = []
             key = normalize_name(record["name"])
             # Name fallback is permitted only when both source and pool names resolve uniquely.
             if source_names.get(key) == 1:
-                candidates = by_name.get(key, [])
+                candidates = [p for p in by_name.get(key, []) if not _stable_ids(p)]
         if len(candidates) != 1:
             if len(candidates) > 1 or source_names.get(normalize_name(record["name"])) > 1:
                 ambiguous += 1
@@ -135,8 +140,12 @@ def attach_records(snapshot: dict, records: list[dict], fetched_at: str | None =
                 unmatched += 1
             continue
         player = candidates[0]
-        if player["fantraxId"] in matched_ids:
+        if player["fantraxId"] in conflicted_ids:
             ambiguous += 1
+            continue
+        if player["fantraxId"] in matched_ids:
+            ambiguous += 2
+            conflicted_ids.add(player["fantraxId"])
             player.pop("statcast2026", None)
             matched_ids.discard(player["fantraxId"])
             continue

@@ -132,9 +132,12 @@ def player_name(split: dict) -> str:
     return str(player.get("fullName") or player.get("name") or "").strip()
 
 
-def _put_unique(target: dict, key: str, record: dict) -> None:
+def _put_unique(target: dict, key: str, record: dict, mlb_id=None) -> None:
     if not key:
         return
+    if mlb_id is not None:
+        id_key = f"mlb:{mlb_id}"
+        target[id_key] = None if id_key in target else record
     if key in target:
         target[key] = None
     else:
@@ -150,7 +153,7 @@ def build_maps(start: str, end: str) -> tuple[dict, dict]:
         s = split.get("stat") or {}
         games = int(num(s, "gamesPlayed"))
         pts = hitter_points(s)
-        _put_unique(hitter_map, norm(name), {"points": round(pts, 1), "games": games, "ppg": round(pts / games, 2) if games else None})
+        _put_unique(hitter_map, norm(name), {"points": round(pts, 1), "games": games, "ppg": round(pts / games, 2) if games else None}, (split.get("player") or split.get("person") or {}).get("id"))
     for split in splits("pitching", start, end):
         name = player_name(split)
         if not name:
@@ -163,7 +166,7 @@ def build_maps(start: str, end: str) -> tuple[dict, dict]:
             "games": games,
             "ppg": round(pts / games, 2) if pts is not None and games else None,
             "scoring_status": "verified" if pts is not None else "mixed-role W/L not verifiable from aggregate stats",
-        })
+        }, (split.get("player") or split.get("person") or {}).get("id"))
     return hitter_map, pitcher_map
 
 
@@ -199,7 +202,7 @@ def main() -> None:
         pitching = is_pitcher(p.get("positions"))
         key = norm(p.get("name"))
         unique_pool_identity = bool(key) and pool_name_counts.get((pitching, key), 0) == 1
-        record = (pitchers if pitching else hitters).get(key) if unique_pool_identity else None
+        record = (pitchers if pitching else hitters).get(f"mlb:{p['mlbId']}") if p.get("mlbId") else None
         if record:
             p["points14"] = record["points"]
             p["games14"] = record["games"]
@@ -209,7 +212,7 @@ def main() -> None:
             p["points14"] = None
             p["games14"] = None
             p["ppg14"] = None
-            if key and not unique_pool_identity:
+            if key and not p.get("mlbId") and not unique_pool_identity:
                 ambiguous_pool_names += 1
 
     ambiguous_source_names = sum(v is None for v in hitters.values()) + sum(v is None for v in pitchers.values())
@@ -221,7 +224,7 @@ def main() -> None:
         "matched_pool_players": matched,
         "ambiguous_pool_names": ambiguous_pool_names,
         "ambiguous_source_names": ambiguous_source_names,
-        "identity_rule": "normalized-name fallback only when unique in both MLB source and Fantrax pool",
+        "identity_rule": "Verified MLBAM ID; ambiguous or unresolved identities withheld",
     }
 
     tmp = args.snapshot.with_suffix(".tmp")

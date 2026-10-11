@@ -139,10 +139,16 @@ def collect_pitcher_logs(snapshot: dict, season: int = SEASON) -> dict:
 
     catalogue = _all_mlb_players(season)
     results = {}
+    pool_by_id = {p.get("fantraxId"):p for p in snapshot.get("pool",[])}
+    catalogue_by_id = {p["id"]:p for group in catalogue.values() for p in group}
     for player, pos in pitchers:
         name = str(player.get("Player") or "").strip()
         fantrax_id = str(player.get("Player ID") or "").strip()
-        people = catalogue.get(_norm(name), [])
+        identity = pool_by_id.get(fantrax_id,{})
+        mlb_id = identity.get("mlbId")
+        people = [catalogue_by_id[mlb_id]] if mlb_id in catalogue_by_id else []
+        if not identity and not snapshot.get("player_identity"):
+            people = catalogue.get(_norm(name), [])
         if len(people) != 1 or not fantrax_id:
             results[name] = {
                 "fantrax_id": fantrax_id or None,
