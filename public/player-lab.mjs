@@ -1,3 +1,4 @@
+import {verifiedIdentity, addComparisonPlayer, comparisonPlayers, comparisonRows} from './player-comparison.mjs';
 import {SNAPSHOT_URL, validateSnapshot} from './snapshot-contract.mjs';
 import {seasonMode} from './season-mode.mjs';
 
@@ -19,6 +20,8 @@ function reloadWarning(failed) {
 }
 
 let selectedId = null;
+let comparisonSelection = [];
+let comparisonMessage = "";
 
 const TEAM_ALIASES = {
   AZ:'ARI', ARI:'ARI', CWS:'CHW', CHW:'CHW', KC:'KCR', KCR:'KCR',
@@ -70,7 +73,7 @@ function ensureLayout() {
   if (!lab || !input || !table) return;
 
   const header = table.querySelector('thead tr');
-  if (header) header.innerHTML = '<th>Player</th><th>MLB</th><th>Positions</th><th>Ownership</th><th>7D FP/G</th><th>14D FP/G</th><th>30D FP/G</th><th>Trend</th>';
+  if (header) header.innerHTML = '<th>Player</th><th>MLB</th><th>Positions</th><th>Ownership</th><th>7D FP/G</th><th>14D FP/G</th><th>30D FP/G</th><th>Trend</th><th>Compare</th>';
 
   if (!document.getElementById('lab-note')) {
     const note = document.createElement('div');
@@ -361,6 +364,23 @@ function render() {
       if (index === 7) td.className = `tone-cell ${t.tone}`;
       tr.append(td);
     });
+    const comparisonCell = document.createElement('td');
+    const addButton = document.createElement('button');
+    addButton.className = 'btn';
+    const added = comparisonSelection.some(item => item.mlbId === p.mlbId);
+    addButton.textContent = added ? 'Selected' : 'Add to compare';
+    addButton.setAttribute('aria-label', `Add ${p.name} (${p.mlbTeam || 'team unknown'}) to comparison`);
+    addButton.disabled = added || !verifiedIdentity(p) || comparisonSelection.length >= 4;
+    addButton.title = !verifiedIdentity(p) ? 'Player identity: Not verified' : comparisonSelection.length >= 4 ? 'Four players maximum' : 'Add this verified MLB player';
+    addButton.addEventListener('click', event => {
+      event.stopPropagation();
+      const result = addComparisonPlayer(comparisonSelection, p);
+      comparisonSelection = result.players;
+      comparisonMessage = result.error;
+      render();
+    });
+    comparisonCell.append(addButton);
+    tr.append(comparisonCell);
     tr.addEventListener('click', () => {
       selectedId = p.fantraxId;
       renderDetail(p);
@@ -371,7 +391,7 @@ function render() {
   if (!matches.length) {
     const tr = document.createElement('tr');
     const td = document.createElement('td');
-    td.colSpan = 8;
+    td.colSpan = 9;
     td.className = 'empty';
     td.textContent = q ? 'No verified matching players.' : 'Type a player name, MLB team or position.';
     tr.append(td);
@@ -383,13 +403,93 @@ function render() {
     renderDetail(selected);
   }
 
+  renderComparison();
   const note = document.getElementById('lab-note');
   if (note) {
     const meta = data.player_lab;
     note.textContent = meta?.recent_end_date
-      ? `Recent form uses completed MLB games through ${meta.recent_end_date}. Click a result for the full scouting card.`
+      ? `Recent form uses completed MLB games through ${meta.recent_end_date}. Click a result for its scouting card, or add 2-4 verified players to compare.`
       : 'Recent-form data is not verified in the current snapshot.';
   }
+}
+
+
+function renderComparison() {
+  let section = document.getElementById('lab-comparison');
+  if (!section) {
+    section = document.createElement('section');
+    section.id = 'lab-comparison';
+    section.className = 'section';
+    document.getElementById('lab-detail').insertAdjacentElement('beforebegin', section);
+  }
+  section.replaceChildren();
+  const heading = document.createElement('h2');
+  heading.textContent = `Player Comparison (${comparisonSelection.length}/4)`;
+  section.append(heading);
+  const note = document.createElement('p');
+  note.className = 'note';
+  note.setAttribute('role','status');
+  note.textContent = comparisonMessage || 'Select 2-4 players from search. FP/FP-G are partial 2027-model values, not exact Fantrax totals. Green/red mark higher/lower favorable values within the selected same-type players; yellow marks ties/intermediate values; gray means unavailable, insufficient sample, or not comparable. No overall winner is inferred.';
+  section.append(note);
+  const players = comparisonPlayers(comparisonSelection, data?.pool || []);
+  const removeButton = (selection) => {
+    const button = document.createElement('button');
+    button.className = 'btn';
+    button.textContent = 'Remove';
+    button.setAttribute('aria-label',`Remove ${selection.name} MLBAM ${selection.mlbId} from comparison`);
+    button.addEventListener('click',()=>{
+      comparisonSelection = comparisonSelection.filter(item=>item.mlbId!==selection.mlbId);
+      comparisonMessage = '';
+      render();
+    });
+    return button;
+  };
+  if (players.length < 2) {
+    for (const selection of comparisonSelection) {
+      const chip = document.createElement('div');
+      chip.textContent = `${selection.name} (MLBAM ${selection.mlbId}) `;
+      chip.append(removeButton(selection));
+      section.append(chip);
+    }
+    const prompt = document.createElement('p');
+    prompt.textContent = players.length ? 'Add one more player to open the comparison.' : 'No players selected.';
+    section.append(prompt);
+    return;
+  }
+  const wrap = document.createElement('div');
+  wrap.className = 'tablewrap';
+  wrap.tabIndex = 0;
+  wrap.setAttribute('aria-label','Side-by-side player comparison; scroll horizontally on smaller screens');
+  const table = document.createElement('table');
+  table.id = 'lab-comparison-table';
+  table.style.cssText = `min-width:${180+players.length*190}px;table-layout:fixed`;
+  const head = document.createElement('thead');
+  const titles = document.createElement('tr');
+  const metric = document.createElement('th'); metric.textContent = 'Metric';titles.append(metric);
+  players.forEach((player,index)=>{
+    const th = document.createElement('th');
+    th.dataset.mlbId = comparisonSelection[index].mlbId;
+    const title = document.createElement('div');
+    title.textContent = `${player.name} - ${player.mlbTeam || 'Not verified'}`;
+    const identity = document.createElement('small');
+    identity.textContent = verifiedIdentity(player) ? `MLBAM ${player.mlbId}` : 'Identity: Not verified; statistics withheld';
+    th.append(title,identity,document.createElement('br'),removeButton(comparisonSelection[index]));
+    titles.append(th);
+  });
+  head.append(titles);table.append(head);
+  const body = document.createElement('tbody');
+  for (const row of comparisonRows(players)) {
+    const tr = document.createElement('tr');
+    const label = document.createElement('th');label.scope = 'row';label.textContent = row.label;tr.append(label);
+    row.values.forEach((value,index)=>{
+      const td = document.createElement('td');
+      td.className = `tone-cell ${row.tones[index]}`;
+      td.textContent = !verifiedIdentity(players[index]) ? 'Not verified' : value === null || value === undefined || (typeof value==='number' && !Number.isFinite(value)) ? 'Not available' : typeof value==='number' ? value.toFixed(row.digits)+row.suffix : String(value);
+      tr.append(td);
+    });
+    body.append(tr);
+  }
+  table.append(body);wrap.append(table);section.append(wrap);
 }
 
 async function load() {
