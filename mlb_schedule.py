@@ -51,6 +51,7 @@ def fetch_weekly_schedule(now: datetime | None = None, week_offset: int = 0) -> 
         "schedule",
         {
             "sportId": 1,
+            "gameTypes": "R",
             "startDate": start.isoformat(),
             "endDate": end.isoformat(),
             "hydrate": "probablePitcher",
@@ -68,6 +69,10 @@ def fetch_weekly_schedule(now: datetime | None = None, week_offset: int = 0) -> 
         if not isinstance(day_text, str) or not isinstance(games, list):
             continue
         for game in games:
+            # Spring training and postseason games must never activate league
+            # matchup mode or become regular-season schedule recommendations.
+            if game.get("gameType") != "R":
+                continue
             sides = game.get("teams") or {}
             home = sides.get("home") or {}
             away = sides.get("away") or {}
