@@ -1,4 +1,4 @@
-import {SNAPSHOT_URL} from './snapshot-contract.mjs';
+import {SNAPSHOT_URL, validateSnapshot} from './snapshot-contract.mjs';
 
 function norm(value) {
   return String(value || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/\([^)]*\)/g, '').replace(/\b(jr|sr|ii|iii|iv)\b\.?/g, '').replace(/[^a-z0-9]/g, '');
@@ -80,7 +80,7 @@ async function load() {
   try {
     const response = await fetch(`${SNAPSHOT_URL}?pl=${Date.now()}`, {cache:'no-store'});
     if (!response.ok) return;
-    data = await response.json();
+    data = validateSnapshot(await response.json());
   } catch { return; }
   if (decorate(data)) return;
   const weekly = document.getElementById('weekly');

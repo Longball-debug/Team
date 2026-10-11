@@ -46,6 +46,9 @@ class _Parser(HTMLParser):
         elif tag == "table":
             self._table = []
         elif self._table is not None and tag == "tr":
+            # HTML permits an omitted </tr>; finish the previous row first.
+            if self._row is not None and any(self._row):
+                self._table.append(self._row)
             self._row = []
         elif self._row is not None and tag in {"th", "td"}:
             self._cell = []
@@ -79,6 +82,9 @@ class _Parser(HTMLParser):
                 self._table.append(self._row)
             self._row = None
         elif tag == "table" and self._table is not None:
+            if self._row is not None and any(self._row):
+                self._table.append(self._row)
+            self._row = None
             if self._table:
                 self.tables.append((self.context, self._table))
             self._table = None

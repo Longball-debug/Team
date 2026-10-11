@@ -9,7 +9,8 @@ import html
 import json
 import re
 import urllib.request
-from datetime import datetime, timezone
+from urllib.parse import urljoin, urlparse
+from datetime import date, datetime, timezone
 from html.parser import HTMLParser
 from pathlib import Path
 from typing import Any
@@ -33,8 +34,8 @@ class ArchiveParser(HTMLParser):
     def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
         if tag != "a":
             return
-        href = dict(attrs).get("href") or ""
-        if href.startswith("https://pitcherlist.com/") and "starting-pitcher-streamer" in href:
+        href = urljoin(ARCHIVE_URL, html.unescape(dict(attrs).get("href") or ""))
+        if urlparse(href).hostname in {"pitcherlist.com", "www.pitcherlist.com"} and "starting-pitcher-streamer" in href:
             href = href.split("?")[0]
             if href not in self.links:
                 self.links.append(href)
@@ -103,7 +104,7 @@ def _heading_date(heading: str | None, season: int) -> str | None:
         return None
     month, day = map(int, m.groups())
     try:
-        return f"{season:04d}-{month:02d}-{day:02d}"
+        return date(season, month, day).isoformat()
     except ValueError:
         return None
 
@@ -163,6 +164,11 @@ def attach(snapshot: dict[str, Any]) -> dict[str, Any]:
         archive.feed(_fetch(ARCHIVE_URL))
         rows: list[dict[str, Any]] = []
         for url in archive.links[:12]:
+            # Streamer slugs encode their published month/day range. Do not fetch
+            # known out-of-window articles just to discover that they are stale.
+            dates = re.findall(r"(?:^|-)(\d{1,2})-(\d{1,2})(?=-|/|$)", urlparse(url).path)
+            if dates and not any(f"{season}-{int(m):02d}-{int(d):02d}" in days for m,d in dates):
+                continue
             try:
                 rows.extend(parse_article(_fetch(url), season, url))
             except Exception:
@@ -179,6 +185,8 @@ def attach(snapshot: dict[str, Any]) -> dict[str, Any]:
             result["days"][day].append({k: v for k, v in row.items() if k != "date"})
         if any(result["days"].values()):
             result["status"] = "verified"
+        else:
+            result["reason"] = "Not available: no verified streamer ratings for the requested week; stale articles excluded"
     except Exception as exc:
         result["reason"] = type(exc).__name__
     snapshot["pitcher_list"] = result
