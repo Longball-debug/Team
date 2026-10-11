@@ -419,5 +419,5 @@ async function refresh() {
 
 const initial = location.hash.replace('#','');
 if (['daily','weekly','freeagents','lab'].includes(initial)) show(initial);
+// Load once on page open; subsequent refreshes are user-initiated.
 refresh();
-setInterval(refresh, 300000);
