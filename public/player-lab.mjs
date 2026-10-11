@@ -2,6 +2,22 @@ import {SNAPSHOT_URL, validateSnapshot} from './snapshot-contract.mjs';
 import {seasonMode} from './season-mode.mjs';
 
 let data = null;
+
+function reloadWarning(failed) {
+  let warning = document.getElementById('player-lab-reload-warning');
+  if (!warning) {
+    warning = document.createElement('div');
+    warning.id = 'player-lab-reload-warning';
+    warning.setAttribute('role', 'alert');
+    warning.style.cssText = 'padding:12px;border:2px solid #b42318;background:#fff0ed;color:#8a1c13;font-weight:bold';
+    document.querySelector('#lab').prepend(warning);
+  }
+  warning.hidden = !failed;
+  warning.textContent = data
+    ? `STALE DATA � reload failed. Showing the last successfully loaded snapshot (${data.generated_at}). Availability and recommendations may have changed. Retry Reload Snapshot.`
+    : 'DATA UNAVAILABLE � reload failed. No verified snapshot is loaded. Retry Reload Snapshot.';
+}
+
 let selectedId = null;
 
 const TEAM_ALIASES = {
@@ -383,9 +399,9 @@ async function load() {
     if (!response.ok) throw new Error(`HTTP ${response.status}`);
     data = validateSnapshot(await response.json());
     render();
+    reloadWarning(false);
   } catch {
-    data = null;
-    renderDetail(null);
+    reloadWarning(true);
   }
 }
 
@@ -393,3 +409,4 @@ ensureLayout();
 document.getElementById('lab-search')?.addEventListener('input', render);
 document.querySelector('#lab .reloadbtn')?.addEventListener('click', load);
 load();
+

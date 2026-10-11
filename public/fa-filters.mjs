@@ -2,7 +2,26 @@ import {ficDailyRating} from './daily-matchups.mjs';
 import {SNAPSHOT_URL, validateSnapshot} from './snapshot-contract.mjs';
 import {seasonMode} from './season-mode.mjs';
 
+let pageIndex = 0;
+let filterKey = null;
+const PAGE_SIZE = 100;
 let data = null;
+
+function reloadWarning(failed) {
+  let warning = document.getElementById('fa-filters-reload-warning');
+  if (!warning) {
+    warning = document.createElement('div');
+    warning.id = 'fa-filters-reload-warning';
+    warning.setAttribute('role', 'alert');
+    warning.style.cssText = 'padding:12px;border:2px solid #b42318;background:#fff0ed;color:#8a1c13;font-weight:bold';
+    document.querySelector('#freeagents').prepend(warning);
+  }
+  warning.hidden = !failed;
+  warning.textContent = data
+    ? `STALE DATA � reload failed. Showing the last successfully loaded snapshot (${data.generated_at}). Availability and recommendations may have changed. Retry Reload Snapshot.`
+    : 'DATA UNAVAILABLE � reload failed. No verified snapshot is loaded. Retry Reload Snapshot.';
+}
+
 
 const TEAM_ALIASES = {
   AZ:'ARI', ARI:'ARI', CWS:'CHW', CHW:'CHW', KC:'KCR', KCR:'KCR',
@@ -336,8 +355,30 @@ function render() {
     return String(a.name || '').localeCompare(String(b.name || ''));
   });
 
+  const key = JSON.stringify([q, type, position, activity]);
+  if (key !== filterKey) { pageIndex = 0; filterKey = key; }
+  const pages = Math.max(1, Math.ceil(rows.length / PAGE_SIZE));
+  pageIndex = Math.min(pageIndex, pages - 1);
+  let pager = document.getElementById('fa-pagination');
+  if (!pager) {
+    pager = document.createElement('div');
+    pager.id = 'fa-pagination';
+    body.closest('.tablewrap').insertAdjacentElement('beforebegin', pager);
+  }
+  pager.replaceChildren();
+  for (const [label, delta] of [['Previous', -1], ['Next', 1]]) {
+    const button = document.createElement('button');
+    button.textContent = label;
+    button.disabled = delta < 0 ? pageIndex === 0 : pageIndex === pages - 1;
+    button.addEventListener('click', () => { pageIndex += delta; render(); });
+    pager.append(button);
+  }
+  const count = document.createElement('span');
+  count.textContent = ` Page ${pageIndex + 1} of ${pages} � ${rows.length.toLocaleString()} matching players `;
+  pager.append(count);
   body.replaceChildren();
-  for (const player of rows) {
+  const fragment = document.createDocumentFragment();
+  for (const player of rows.slice(pageIndex * PAGE_SIZE, (pageIndex + 1) * PAGE_SIZE)) {
     const tr = document.createElement('tr');
     const signal = overallSignal(player, allFreeAgents, weeks, mode);
     tr.append(pillCell(signal.label, signal.tone, signal.title));
@@ -358,8 +399,9 @@ function render() {
       const fic = ficSummary(player, weeks);
       tr.append(pillCell(fic.label, fic.tone, fic.title));
     }
-    body.append(tr);
+    fragment.append(tr);
   }
+  body.append(fragment);
 
   if (!rows.length) {
     const tr = document.createElement('tr');
@@ -394,8 +436,9 @@ async function load() {
     if (!response.ok) throw new Error(`HTTP ${response.status}`);
     data = validateSnapshot(await response.json());
     render();
+    reloadWarning(false);
   } catch {
-    data = null;
+    reloadWarning(true);
   }
 }
 
@@ -406,3 +449,4 @@ document.getElementById('fa-search')?.addEventListener('input', render);
 document.getElementById('fa-type')?.addEventListener('change', render);
 document.querySelector('#freeagents .reloadbtn')?.addEventListener('click', load);
 load();
+

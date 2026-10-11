@@ -85,7 +85,7 @@ jobs:
           node-version: '24'
 
       - name: Verify website freshness contract
-        run: node --test test_snapshot_contract.mjs test_rb_weekly.mjs test_daily_trends.mjs test_daily_matchups.mjs test_ui_ownership.mjs test_season_mode.mjs
+        run: node --test test_snapshot_contract.mjs test_rb_weekly.mjs test_daily_trends.mjs test_daily_matchups.mjs test_ui_ownership.mjs test_season_mode.mjs test_reload_stability.mjs
 
       - name: Collect Fantrax once
         run: python fantrax_refresh.py --root "$RUNNER_TEMP/fantasygm" --league-id gxq8uqpqmg5m5edj --no-prompt
@@ -166,3 +166,4 @@ jobs:
             HEADER="AUTHORIZATION: basic $(printf 'x-access-token:%s' "$GH_TOKEN" | base64 -w0)"
             git -c "http.https://github.com/.extraheader=$HEADER" push origin HEAD:main || echo 'Snapshot push skipped because main advanced; Cloudflare deploy already succeeded.'
           fi
+
