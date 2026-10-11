@@ -1,5 +1,6 @@
 """Collect the last three verified MLB pitching games for Desert Rats pitchers."""
 from __future__ import annotations
+from scoring_fields import missing_fields, source_number
 
 import json
 import re
@@ -56,13 +57,15 @@ def _num(stat: dict, key: str) -> float:
         return 0.0
 
 
-def longball_points(stat: dict) -> float:
+def longball_points(stat: dict) -> float | None:
     """Score one pitching appearance using actual game role.
 
     LONGBALL 2027 uses SP W/L at +5/-5 and RP W/L at +2/-2.
     Role is determined from gamesStarted for this appearance, never from
     Fantrax position eligibility.
     """
+    if missing_fields(stat, "pitching", aggregate=False):
+        return None
     ip = _ip_value(stat.get("inningsPitched"))
     k = _num(stat, "strikeOuts")
     er = _num(stat, "earnedRuns")
@@ -170,15 +173,15 @@ def collect_pitcher_logs(snapshot: dict, season: int = SEASON) -> dict:
                 "date": split.get("date"),
                 "opponent": opponent,
                 "innings_pitched": stat.get("inningsPitched"),
-                "strikeouts": int(_num(stat, "strikeOuts")),
-                "earned_runs": int(_num(stat, "earnedRuns")),
-                "hits": int(_num(stat, "hits")),
-                "walks": int(_num(stat, "baseOnBalls")),
-                "wins": int(_num(stat, "wins")),
-                "losses": int(_num(stat, "losses")),
-                "saves": int(_num(stat, "saves")),
-                "holds": int(_num(stat, "holds")),
-                "blown_saves": int(_num(stat, "blownSaves")),
+                "strikeouts": int(source_number(stat, "strikeOuts")) if source_number(stat, "strikeOuts") is not None else None,
+                "earned_runs": int(source_number(stat, "earnedRuns")) if source_number(stat, "earnedRuns") is not None else None,
+                "hits": int(source_number(stat, "hits")) if source_number(stat, "hits") is not None else None,
+                "walks": int(source_number(stat, "baseOnBalls")) if source_number(stat, "baseOnBalls") is not None else None,
+                "wins": int(source_number(stat, "wins")) if source_number(stat, "wins") is not None else None,
+                "losses": int(source_number(stat, "losses")) if source_number(stat, "losses") is not None else None,
+                "saves": int(source_number(stat, "saves")) if source_number(stat, "saves") is not None else None,
+                "holds": int(source_number(stat, "holds")) if source_number(stat, "holds") is not None else None,
+                "blown_saves": int(source_number(stat, "blownSaves")) if source_number(stat, "blownSaves") is not None else None,
                 "fantasy_points": longball_points(stat),
             }
             selected.append(game)

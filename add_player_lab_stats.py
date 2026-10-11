@@ -7,6 +7,8 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from zoneinfo import ZoneInfo
 
+from scoring_fields import source_number, games_count
+
 from add_recent_14d_stats import _put_unique, fetch_json, hitter_points, is_pitcher, norm, num, pitcher_points, player_name
 
 
@@ -26,13 +28,13 @@ def recent_map(group: str, start: str, end: str) -> dict[str, dict]:
         if not name:
             continue
         s = split.get("stat") or {}
-        games = int(num(s, "gamesPlayed") or num(s, "gamesPitched"))
+        games = games_count(s, group)
         pts = pitcher_points(s) if group == "pitching" else hitter_points(s)
         _put_unique(out, norm(name), {
             "points": round(pts, 1) if pts is not None else None,
             "games": games,
             "ppg": round(pts / games, 2) if pts is not None and games else None,
-            "scoring_status": "verified" if pts is not None else "mixed-role W/L not verifiable from aggregate stats",
+            "scoring_status": "partial model" if pts is not None else "unavailable: missing fields or unresolved decision role",
         }, (split.get("player") or split.get("person") or {}).get("id"))
     return out
 
@@ -45,10 +47,10 @@ def season_map(group: str, season: int) -> dict[str, dict]:
             continue
         s = split.get("stat") or {}
         if group == "hitting":
-            pa = num(s, "plateAppearances")
+            pa = source_number(s, "plateAppearances")
             ab = num(s, "atBats")
-            bb = num(s, "baseOnBalls")
-            so = num(s, "strikeOuts")
+            bb = source_number(s, "baseOnBalls")
+            so = source_number(s, "strikeOuts")
             try:
                 avg = float(s.get("avg")) if s.get("avg") not in (None, "") else None
                 obp = float(s.get("obp")) if s.get("obp") not in (None, "") else None
@@ -58,22 +60,22 @@ def season_map(group: str, season: int) -> dict[str, dict]:
                 avg = obp = slg = ops = None
             _put_unique(out, norm(name), {
                 "type": "hitter",
-                "games": int(num(s, "gamesPlayed")),
-                "pa": int(pa),
+                "games": int(source_number(s, "gamesPlayed")) if source_number(s, "gamesPlayed") is not None else None,
+                "pa": int(pa) if pa is not None else None,
                 "avg": avg,
                 "obp": obp,
                 "slg": slg,
                 "ops": ops,
-                "hr": int(num(s, "homeRuns")),
-                "sb": int(num(s, "stolenBases")),
-                "bb_pct": round(bb / pa * 100, 1) if pa else None,
-                "k_pct": round(so / pa * 100, 1) if pa else None,
+                "hr": int(source_number(s, "homeRuns")) if source_number(s, "homeRuns") is not None else None,
+                "sb": int(source_number(s, "stolenBases")) if source_number(s, "stolenBases") is not None else None,
+                "bb_pct": round(bb / pa * 100, 1) if pa and bb is not None else None,
+                "k_pct": round(so / pa * 100, 1) if pa and so is not None else None,
                 "iso": round(slg - avg, 3) if slg is not None and avg is not None else None,
             }, (split.get("player") or split.get("person") or {}).get("id"))
         else:
-            bf = num(s, "battersFaced")
-            so = num(s, "strikeOuts")
-            bb = num(s, "baseOnBalls")
+            bf = source_number(s, "battersFaced")
+            so = source_number(s, "strikeOuts")
+            bb = source_number(s, "baseOnBalls")
             try:
                 era = float(s.get("era")) if s.get("era") not in (None, "") else None
                 whip = float(s.get("whip")) if s.get("whip") not in (None, "") else None
@@ -81,14 +83,14 @@ def season_map(group: str, season: int) -> dict[str, dict]:
                 era = whip = None
             _put_unique(out, norm(name), {
                 "type": "pitcher",
-                "games": int(num(s, "gamesPitched") or num(s, "gamesPlayed")),
-                "starts": int(num(s, "gamesStarted")),
+                "games": games_count(s, "pitching"),
+                "starts": int(source_number(s, "gamesStarted")) if source_number(s, "gamesStarted") is not None else None,
                 "ip": s.get("inningsPitched"),
                 "era": era,
                 "whip": whip,
-                "k": int(so),
-                "bb": int(bb),
-                "k_bb_pct": round((so - bb) / bf * 100, 1) if bf else None,
+                "k": int(so) if so is not None else None,
+                "bb": int(bb) if bb is not None else None,
+                "k_bb_pct": round((so - bb) / bf * 100, 1) if bf and so is not None and bb is not None else None,
             }, (split.get("player") or split.get("person") or {}).get("id"))
     return out
 

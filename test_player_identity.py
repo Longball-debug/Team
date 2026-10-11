@@ -1,3 +1,4 @@
+from scoring_test_fixtures import HITTER_ZERO, PITCHER_ZERO
 import unittest
 from unittest.mock import patch
 from player_identity import attach_identities
@@ -18,7 +19,7 @@ class IdentityTests(unittest.TestCase):
         self.assertTrue(all('mlbId' not in p for p in pool))
 
     def test_duplicate_mlb_names_keep_distinct_id_statistics(self):
-        splits=[{'player':{'id':i,'fullName':'Max Muncy'},'stat':{'gamesPlayed':1,'hits':i,'atBats':4}} for i in [1,2]]
+        splits=[{'player':{'id':i,'fullName':'Max Muncy'},'stat':{**HITTER_ZERO,'gamesPlayed':1,'hits':i,'atBats':4}} for i in [1,2]]
         with patch('add_player_lab_stats.stat_splits',return_value=splits):
             result=recent_map('hitting','2026-01-01','2026-01-02')
         self.assertIsNone(result['maxmuncy'])

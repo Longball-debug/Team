@@ -1,3 +1,4 @@
+from scoring_test_fixtures import HITTER_ZERO, PITCHER_ZERO
 import unittest
 from unittest.mock import patch
 
@@ -57,7 +58,7 @@ class RecentIdentityTests(unittest.TestCase):
 
 
     def test_recent_pitcher_scoring_uses_role_sensitive_win_loss_values(self):
-        base = {
+        base = {**PITCHER_ZERO,
             "inningsPitched": "1.0",
             "strikeOuts": 0,
             "earnedRuns": 0,

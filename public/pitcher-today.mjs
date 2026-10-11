@@ -71,7 +71,7 @@ function recentGamesFor(player, recent) {
 }
 
 function trendFor(games) {
-  const values = games.map(g => Number(g.fantasy_points)).filter(Number.isFinite);
+  const values = games.map(g => g.fantasy_points).filter(Number.isFinite);
   if (values.length < 2) return {label:'Not enough data', tone:'gray'};
   if (values.length >= 3 && values[0] > values[1] && values[1] >= values[2]) return {label:'↑ Rising', tone:'green'};
   if (values.length >= 3 && values[0] < values[1] && values[1] <= values[2]) return {label:'↓ Falling', tone:'red'};
@@ -156,7 +156,7 @@ async function render() {
         const pl = role === 'SP — START' ? pitcherListDailyRating(data.pitcher_list, phoenixDateString(), player.Player) : null;
         row.append(ratingCell(pl?.label || (games.length ? 'Not rated' : '—'), pl?.tone || 'gray', pl?.detail || ''));
       }
-      row.append(td(recent.length ? recent.map(g => Number(g.fantasy_points).toFixed(1)).join(' / ') : 'Not verified'));
+      row.append(td(recent.length ? recent.map(g => Number.isFinite(g.fantasy_points) ? g.fantasy_points.toFixed(1) : "Not available").join(' / ') : 'Not verified'));
       row.append(ratingCell(trend.label, trend.tone));
       body.append(row);
     }
@@ -174,3 +174,5 @@ async function render() {
 
 if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', render, {once:true});
 else render();
+
+document.querySelector('#daily .reloadbtn')?.addEventListener('click', render);

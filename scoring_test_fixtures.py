@@ -1,0 +1,2 @@
+HITTER_ZERO = dict(hits=0,doubles=0,triples=0,homeRuns=0,rbi=0,runs=0,stolenBases=0,baseOnBalls=0,strikeOuts=0,hitByPitch=0,sacFlies=0,sacBunts=0,groundIntoDoublePlay=0,caughtStealing=0,intentionalWalks=0)
+PITCHER_ZERO = dict(strikeOuts=0,earnedRuns=0,hits=0,baseOnBalls=0,wins=0,losses=0,saves=0,holds=0,blownSaves=0,completeGames=0,hitBatsmen=0,homeRuns=0,pickoffs=0,shutouts=0,gamesStarted=0,gamesPitched=1,qualityStarts=0,inningsPitched='0.0')

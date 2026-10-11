@@ -400,6 +400,9 @@ async function load() {
     data = validateSnapshot(await response.json());
     render();
     reloadWarning(false);
+    const status = document.querySelector('#lab [data-status]');
+    if (status) status.textContent = `Snapshot collected: ${new Date(data.generated_at).toLocaleString()} | Browser loaded: ${new Date().toLocaleString()} | Reload reads published data; it does not generate new data. FP and FP/G are partial model calculations, not exact Fantrax totals. ${data.source}`;
+
   } catch {
     reloadWarning(true);
   }

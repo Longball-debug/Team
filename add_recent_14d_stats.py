@@ -11,6 +11,8 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from zoneinfo import ZoneInfo
 
+from scoring_fields import missing_fields, source_number, games_count
+
 BASE = "https://statsapi.mlb.com/api/v1"
 
 # FantasyGM2027 / LONGBALL 2027 working scoring.
@@ -65,7 +67,9 @@ def innings(value) -> float:
         return 0.0
 
 
-def hitter_points(s: dict) -> float:
+def hitter_points(s: dict) -> float | None:
+    if missing_fields(s, "hitting"):
+        return None
     hits = num(s, "hits")
     doubles = num(s, "doubles")
     triples = num(s, "triples")
@@ -89,6 +93,8 @@ def pitcher_points(s: dict) -> float | None:
     a win or loss, aggregate MLB stats cannot identify which role produced the
     decision, so the fantasy-point value is left unverified instead of guessed.
     """
+    if missing_fields(s, "pitching"):
+        return None
     games_started = num(s, "gamesStarted")
     games_pitched = num(s, "gamesPitched") or num(s, "gamesPlayed")
     wins = num(s, "wins")
@@ -151,21 +157,21 @@ def build_maps(start: str, end: str) -> tuple[dict, dict]:
         if not name:
             continue
         s = split.get("stat") or {}
-        games = int(num(s, "gamesPlayed"))
+        games = games_count(s, "hitting")
         pts = hitter_points(s)
-        _put_unique(hitter_map, norm(name), {"points": round(pts, 1), "games": games, "ppg": round(pts / games, 2) if games else None}, (split.get("player") or split.get("person") or {}).get("id"))
+        _put_unique(hitter_map, norm(name), {"points": round(pts, 1) if pts is not None else None, "games": games, "ppg": round(pts / games, 2) if pts is not None and games else None, "scoring_status": "partial model" if pts is not None else "unavailable: missing source fields"}, (split.get("player") or split.get("person") or {}).get("id"))
     for split in splits("pitching", start, end):
         name = player_name(split)
         if not name:
             continue
         s = split.get("stat") or {}
-        games = int(num(s, "gamesPitched") or num(s, "gamesPlayed"))
+        games = games_count(s, "pitching")
         pts = pitcher_points(s)
         _put_unique(pitcher_map, norm(name), {
             "points": round(pts, 1) if pts is not None else None,
             "games": games,
             "ppg": round(pts / games, 2) if pts is not None and games else None,
-            "scoring_status": "verified" if pts is not None else "mixed-role W/L not verifiable from aggregate stats",
+            "scoring_status": "partial model" if pts is not None else "unavailable: missing fields or unresolved decision role",
         }, (split.get("player") or split.get("person") or {}).get("id"))
     return hitter_map, pitcher_map
 

@@ -27,6 +27,9 @@ on:
       - 'add_pitcher_logs.py'
       - 'test_pitcher_identity.py'
       - 'add_recent_14d_stats.py'
+      - 'scoring_fields.py'
+      - 'scoring_test_fixtures.py'
+      - 'test_missing_scoring_fields.py'
       - 'add_player_lab_stats.py'
       - 'test_recent_identity.py'
       - 'add_statcast_exit_velocity.py'
@@ -87,7 +90,7 @@ jobs:
           node-version: '24'
 
       - name: Verify website freshness contract
-        run: node --test test_snapshot_contract.mjs test_rb_weekly.mjs test_daily_trends.mjs test_daily_matchups.mjs test_ui_ownership.mjs test_season_mode.mjs test_reload_stability.mjs
+        run: node --test test_snapshot_contract.mjs test_rb_weekly.mjs test_daily_trends.mjs test_daily_matchups.mjs test_ui_ownership.mjs test_season_mode.mjs test_reload_stability.mjs test_missing_pitcher_trend.mjs
 
       - name: Collect Fantrax once
         run: python fantrax_refresh.py --root "$RUNNER_TEMP/fantasygm" --league-id gxq8uqpqmg5m5edj --no-prompt

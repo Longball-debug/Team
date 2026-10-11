@@ -94,3 +94,5 @@ async function load() {
 
 if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', load, {once:true});
 else load();
+
+document.querySelector('#weekly .reloadbtn')?.addEventListener('click', load);

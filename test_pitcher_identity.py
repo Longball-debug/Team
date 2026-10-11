@@ -1,3 +1,4 @@
+from scoring_test_fixtures import HITTER_ZERO, PITCHER_ZERO
 import unittest
 from unittest.mock import patch
 
@@ -43,7 +44,7 @@ class PitcherIdentityTests(unittest.TestCase):
         split = {
             "date": "2026-09-20",
             "opponent": {"abbreviation": "LAD"},
-            "stat": {
+            "stat": {**PITCHER_ZERO,
                 "gamesStarted": 1,
                 "inningsPitched": "6.0",
                 "strikeOuts": 7,
@@ -67,7 +68,7 @@ class PitcherIdentityTests(unittest.TestCase):
 
 
     def test_sp_and_rp_win_loss_scoring_uses_actual_game_role(self):
-        base = {
+        base = {**PITCHER_ZERO,
             "inningsPitched": "1.0",
             "strikeOuts": 0,
             "earnedRuns": 0,

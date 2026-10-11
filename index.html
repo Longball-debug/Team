@@ -12,14 +12,14 @@
 <div class="wrap">
   <main id="home" class="page active">
     <div class="brand">FantasyGM2027 · Desert Rats Front Office</div>
-    <div class="hero"><h1>Desert Rats<br>Front Office</h1><p>Historical LONGBALL 2026 roster and 2026 statistics. Partial Fantrax 2027 scoring; primary 2027 league activation awaits complete rosters.</p><div style="margin-top:10px"><span id="season-mode" class="pill">Loading mode…</span></div></div>
+    <div class="hero"><h1>Desert Rats<br>Front Office</h1><p>Historical LONGBALL 2026 roster and 2026 statistics. Partial Fantrax 2027 scoring; primary 2027 league activation awaits complete rosters. FP/FP-G are partial model values, not exact Fantrax totals. Reload reads published data; collection runs separately.</p><div style="margin-top:10px"><span id="season-mode" class="pill">Loading mode…</span></div></div>
     <div class="summary">
       <div class="metric"><div class="label">Last Snapshot</div><div class="value" id="home-updated">Loading…</div></div>
       <div class="metric"><div class="label">Desert Rats</div><div class="value" id="home-roster-count">—</div></div>
       <div class="metric"><div class="label">Free Agents</div><div class="value" id="home-fa-count">—</div></div>
       <div class="metric"><div class="label">Recent Transactions</div><div class="value" id="home-tx-count">—</div></div>
     </div>
-    <div class="actions" style="margin-bottom:18px"><button class="btn reloadbtn">Reload Latest Snapshot</button></div>
+    <div class="actions" style="margin-bottom:18px"><button class="btn reloadbtn">Reload Published Snapshot</button></div>
     <div class="grid">
       <button class="navcard" data-page="daily"><strong>Daily Command Center</strong><span>Today's actions, hitter matchups, trends and pitchers.</span></button>
       <button class="navcard" data-page="weekly"><strong>Weekly Outlook</strong><span>Seven-day opponent grid for hitters, starters and relievers.</span></button>
@@ -29,7 +29,7 @@
   </main>
 
   <section id="daily" class="page">
-    <div class="bar"><h1>Daily Command Center</h1><div class="actions"><button class="btn reloadbtn">Reload Snapshot</button><button class="btn homebtn">Back to Home</button></div></div>
+    <div class="bar"><h1>Daily Command Center</h1><div class="actions"><button class="btn reloadbtn">Reload Published Snapshot</button><button class="btn homebtn">Back to Home</button></div></div>
     <div class="status" data-status>Loading verified snapshot…</div>
     <div class="warning" id="daily-note">Today's opponent and probable starter come from the verified MLB schedule. Hand and FIC BvP rating appear only when verified; otherwise the row stays ungraded.</div>
     <div class="section" data-inseason-only><h2>Today's Actions</h2><div id="daily-actions" class="actiongrid"></div></div>
@@ -38,7 +38,7 @@
   </section>
 
   <section id="weekly" class="page">
-    <div class="bar"><h1>Weekly Outlook</h1><div class="actions"><button class="btn reloadbtn">Reload Snapshot</button><button class="btn homebtn">Back to Home</button></div></div>
+    <div class="bar"><h1>Weekly Outlook</h1><div class="actions"><button class="btn reloadbtn">Reload Published Snapshot</button><button class="btn homebtn">Back to Home</button></div></div>
     <div class="status" data-status>Loading verified snapshot…</div>
     <div class="warning" id="weekly-note">MLB opponents and probable starters come from the verified MLB schedule. Matchup-strength colors remain gray until a verified rating source is attached.</div><div class="warning" data-offseason-only hidden>Offseason mode: weekly matchup grids are hidden until the regular-season schedule window resumes.</div>
     <div class="section" data-inseason-only><h2>Weekly Hitters</h2><div class="tablewrap"><table class="weekly-grid"><thead><tr><th>Player</th><th data-week-day="0">Mon</th><th data-week-day="1">Tue</th><th data-week-day="2">Wed</th><th data-week-day="3">Thu</th><th data-week-day="4">Fri</th><th data-week-day="5">Sat</th><th data-week-day="6">Sun</th></tr></thead><tbody id="weekly-hitters"></tbody></table></div></div>
@@ -46,14 +46,14 @@
   </section>
 
   <section id="freeagents" class="page">
-    <div class="bar"><h1>Free Agent Board</h1><div class="actions"><button class="btn reloadbtn">Reload Snapshot</button><button class="btn homebtn">Back to Home</button></div></div>
+    <div class="bar"><h1>Free Agent Board</h1><div class="actions"><button class="btn reloadbtn">Reload Published Snapshot</button><button class="btn homebtn">Back to Home</button></div></div>
     <div class="status" data-status>Loading verified snapshot…</div>
     <div class="searchrow"><input id="fa-search" class="search" placeholder="Search free agents by player, MLB team or position"><select id="fa-type" class="select"><option value="all">All players</option><option value="hitters">Hitters</option><option value="pitchers">Pitchers</option></select></div>
     <div class="tablewrap"><table><thead><tr><th>Player</th><th>MLB</th><th>Positions</th><th>Availability</th></tr></thead><tbody id="fa-rows"></tbody></table></div>
   </section>
 
   <section id="lab" class="page">
-    <div class="bar"><h1>Player Lab</h1><div class="actions"><button class="btn reloadbtn">Reload Snapshot</button><button class="btn homebtn">Back to Home</button></div></div>
+    <div class="bar"><h1>Player Lab</h1><div class="actions"><button class="btn reloadbtn">Reload Published Snapshot</button><button class="btn homebtn">Back to Home</button></div></div>
     <div class="status" data-status>Loading verified snapshot…</div>
     <input id="lab-search" class="search" placeholder="Search any player">
     <div class="tablewrap" style="margin-top:12px"><table><thead><tr><th>Player</th><th>MLB</th><th>Positions</th><th>Fantasy Team / Availability</th></tr></thead><tbody id="lab-rows"></tbody></table></div>

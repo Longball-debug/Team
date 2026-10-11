@@ -13,7 +13,7 @@ function cell(value, fallback='Unavailable') {
 }
 
 function setStatus(text) {
-  document.querySelectorAll('[data-status]').forEach(el => { el.textContent = text; });
+  document.querySelectorAll('[data-status]').forEach(el => { if (!el.closest("#freeagents, #lab")) el.textContent = text; });
 }
 
 function show(page) {
@@ -338,7 +338,7 @@ function gameCell(game) {
   }
   const top = document.createElement('strong');
   const date = game.date ? new Date(`${game.date}T12:00:00`).toLocaleDateString([], {month:'numeric', day:'numeric'}) : 'Date ?';
-  top.textContent = `${date} · ${game.opponent || '?'} · ${Number(game.fantasy_points).toFixed(1)} FP`;
+  top.textContent = `${date} · ${game.opponent || '?'} · ${Number.isFinite(game.fantasy_points) ? game.fantasy_points.toFixed(1) : "Not available"} FP`;
   const detail = document.createElement('small');
   detail.textContent = `${game.innings_pitched ?? '?'} IP · ${game.strikeouts ?? '?'} K · ${game.earned_runs ?? '?'} ER · ${game.hits ?? '?'} H · ${game.walks ?? '?'} BB`;
   td.append(top, detail);
@@ -404,7 +404,7 @@ async function refresh() {
     // Do not render the legacy four-column free-agent table here; doing so
     // overwrites the enriched board during the five-minute core refresh.
     const stamp = new Date(snapshot.generated_at).toLocaleString();
-    setStatus(`Last Updated: ${stamp} · ${snapshot.source}`);
+    setStatus(`Snapshot collected: ${stamp} | Browser loaded: ${new Date().toLocaleString()} | Reload reads published data; it does not generate new data. FP/FP-G are partial model values, not exact Fantrax totals · ${snapshot.source}`);
   } catch {
     snapshot = null;
     setStatus('Current data unavailable: the latest complete refresh could not be verified.');
