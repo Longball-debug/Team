@@ -75,6 +75,17 @@ function ensureLayout() {
   const header = table.querySelector('thead tr');
   if (header) header.innerHTML = '<th>Player</th><th>MLB</th><th>Positions</th><th>Ownership</th><th>7D FP/G</th><th>14D FP/G</th><th>30D FP/G</th><th>Trend</th><th>Compare</th>';
 
+  if (!document.getElementById('lab-reload-feedback')) {
+    const feedback = document.createElement('div');
+    feedback.id = 'lab-reload-feedback';
+    feedback.setAttribute('role', 'status');
+    feedback.setAttribute('aria-live', 'polite');
+    feedback.className = 'note';
+    feedback.style.margin = '0 0 12px';
+    const actions = lab.querySelector('.actions');
+    if (actions) actions.insertAdjacentElement('afterend', feedback);
+    else lab.prepend(feedback);
+  }
   if (!document.getElementById('lab-note')) {
     const note = document.createElement('div');
     note.id = 'lab-note';
@@ -497,14 +508,24 @@ async function load() {
   try {
     const response = await fetch(`${SNAPSHOT_URL}?lab=${Date.now()}`, {cache:'no-store'});
     if (!response.ok) throw new Error(`HTTP ${response.status}`);
-    data = validateSnapshot(await response.json());
+    const next = validateSnapshot(await response.json());
+    const previousTimestamp = data?.generated_at;
+    data = next;
     render();
     reloadWarning(false);
     const status = document.querySelector('#lab [data-status]');
+    const reloadFeedback = document.getElementById('lab-reload-feedback');
     if (status) status.textContent = `Snapshot collected: ${new Date(data.generated_at).toLocaleString()} | Browser loaded: ${new Date().toLocaleString()} | Reload reads published data; it does not generate new data. FP and FP/G are partial model calculations, not exact Fantrax totals. ${data.source}`;
+    if (reloadFeedback && previousTimestamp) {
+      reloadFeedback.textContent = previousTimestamp === data.generated_at
+        ? 'Reload complete — no newer published snapshot available.'
+        : 'Reload complete — a newer published snapshot was loaded.';
+    }
 
   } catch {
     reloadWarning(true);
+    const feedback = document.getElementById('lab-reload-feedback');
+    if (feedback) feedback.textContent = 'Reload failed — retaining previously loaded data.';
   }
 }
 
