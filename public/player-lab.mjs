@@ -510,6 +510,7 @@ async function load() {
     if (!response.ok) throw new Error(`HTTP ${response.status}`);
     const next = validateSnapshot(await response.json());
     const previousTimestamp = data?.generated_at;
+    if (previousTimestamp && Date.parse(next.generated_at) < Date.parse(previousTimestamp)) throw new Error('Published snapshot is older than loaded data');
     data = next;
     render();
     reloadWarning(false);
@@ -517,7 +518,7 @@ async function load() {
     const reloadFeedback = document.getElementById('lab-reload-feedback');
     if (status) status.textContent = `Snapshot collected: ${new Date(data.generated_at).toLocaleString()} | Browser loaded: ${new Date().toLocaleString()} | Reload reads published data; it does not generate new data. FP and FP/G are partial model calculations, not exact Fantrax totals. ${data.source}`;
     if (reloadFeedback && previousTimestamp) {
-      reloadFeedback.textContent = previousTimestamp === data.generated_at
+      reloadFeedback.textContent = Date.parse(previousTimestamp) === Date.parse(data.generated_at)
         ? 'Reload complete — no newer published snapshot available.'
         : 'Reload complete — a newer published snapshot was loaded.';
     }
@@ -525,7 +526,7 @@ async function load() {
   } catch {
     reloadWarning(true);
     const feedback = document.getElementById('lab-reload-feedback');
-    if (feedback) feedback.textContent = 'Reload failed — retaining previously loaded data.';
+    if (feedback) feedback.textContent = data ? 'Reload failed — retaining previously loaded data.' : 'Reload failed — no verified snapshot is loaded.';
   }
 }
 

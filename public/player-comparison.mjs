@@ -45,7 +45,7 @@ export function metricTones(players,values,{group=null,better=null,window=null}=
   if (peerValues.length<2) return tones;
   const best=better==='low'?Math.min(...peerValues):Math.max(...peerValues);
   const worst=better==='low'?Math.max(...peerValues):Math.min(...peerValues);
-  return values.map((v,i)=>!eligible[i]?'gray':best===worst?'yellow':v===best?'green':v===worst?'red');
+  return values.map((v,i)=>!eligible[i]?'gray':best===worst?'yellow':v===best?'green':v===worst?'red':'yellow');
 }
 
 export function comparisonRows(players) {

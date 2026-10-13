@@ -40,3 +40,34 @@ for (const name of ['fa-filters', 'player-lab']) {
   });
 }
 
+test('Player Lab reload feedback distinguishes newer, unchanged, older and failed snapshots', async () => {
+  const source = (await readFile(new URL('./public/player-lab.mjs', import.meta.url), 'utf8')).replaceAll('\r\n', '\n');
+  const feedback = {};
+  let next = {generated_at:'2026-10-13T12:00:00Z'};
+  let failed = false;
+  let warning = false;
+  const context = vm.createContext({
+    data:{generated_at:'2026-10-13T11:00:00Z'}, Date, SNAPSHOT_URL:'snapshot',
+    ensureLayout(){}, render(){}, reloadWarning:value=>{warning=value;},
+    fetch:async()=>({ok:!failed,status:503,json:async()=>next}), validateSnapshot:value=>value,
+    document:{getElementById:()=>feedback,querySelector:()=>({})}
+  });
+  const start=source.indexOf('async function load()');
+  vm.runInContext(source.slice(start,source.indexOf('\n}\n',start)+3),context);
+  await context.load();
+  assert.match(feedback.textContent,/newer published snapshot was loaded/);
+  await context.load();
+  assert.match(feedback.textContent,/no newer published snapshot available/);
+  next={generated_at:'2026-10-13T10:00:00Z'};
+  await context.load();
+  assert.equal(context.data.generated_at,'2026-10-13T12:00:00Z');
+  assert.equal(warning,true);
+  assert.match(feedback.textContent,/Reload failed.*retaining/);
+  failed=true;
+  await context.load();
+  assert.match(feedback.textContent,/Reload failed.*retaining/);
+  context.data=null;
+  await context.load();
+  assert.match(feedback.textContent,/no verified snapshot is loaded/);
+});
+
