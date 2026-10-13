@@ -20,15 +20,32 @@ function kind(p) {
 }
 
 export function metricTones(players,values,{group=null,better=null,window=null}={}) {
-  const gray=players.map(()=>'gray');
-  if (!better || players.length<2 || !players.every(verifiedIdentity) || !values.every(Number.isFinite)) return gray;
-  const types=players.map(kind);
-  if (new Set(types).size!==1 || (group && types[0]!==group)) return gray;
-  if (window && !players.every(p=>Number.isFinite(p[`games${window}`]) && p[`games${window}`]>=2)) return gray;
-  if (!window && group && !players.every(p=>group==='hitter' ? p.seasonMetrics?.pa>=20 : p.seasonMetrics?.games>=2 && parseFloat(p.seasonMetrics?.ip)>=6)) return gray;
-  const best=better==='low'?Math.min(...values):Math.max(...values);
-  const worst=better==='low'?Math.max(...values):Math.min(...values);
-  return values.map(v=>best===worst?'yellow':v===best?'green':v===worst?'red':'yellow');
+  const tones=players.map(()=>'gray');
+  if (!better || players.length<2) return tones;
+  // Compare valid peers for this particular statistic; an unrelated or
+  // unavailable fourth player must not suppress meaningful comparisons.
+  const eligible=players.map((p,i)=>{
+    if (!verifiedIdentity(p) || !Number.isFinite(values[i])) return false;
+    if (group==='hitter' && p.seasonMetrics?.type!=='hitter') return false;
+    if (group==='pitcher' && p.seasonMetrics?.type!=='pitcher') return false;
+    if (window && (!Number.isFinite(p[`games${window}`]) || p[`games${window}`]<2)) return false;
+    if (!window && group==='hitter' && !(p.seasonMetrics?.pa>=20)) return false;
+    if (!window && group==='pitcher' && !(p.seasonMetrics?.games>=2 && parseFloat(p.seasonMetrics?.ip)>=6)) return false;
+    return true;
+  });
+  // Fantasy points are pitching- or hitting-specific. Compare within the
+  // largest same-role peer group only, not SP values against hitters.
+  if (window) {
+    const counts={hitter:0,pitcher:0};
+    players.forEach((p,i)=>{if(eligible[i]) counts[kind(p)]++;});
+    const majority=counts.hitter>=counts.pitcher?'hitter':'pitcher';
+    players.forEach((p,i)=>{if(kind(p)!==majority) eligible[i]=false;});
+  }
+  const peerValues=values.filter((_,i)=>eligible[i]);
+  if (peerValues.length<2) return tones;
+  const best=better==='low'?Math.min(...peerValues):Math.max(...peerValues);
+  const worst=better==='low'?Math.max(...peerValues):Math.min(...peerValues);
+  return values.map((v,i)=>!eligible[i]?'gray':best===worst?'yellow':v===best?'green':v===worst?'red':'yellow');
 }
 
 export function comparisonRows(players) {
@@ -57,7 +74,7 @@ export function comparisonRows(players) {
   }
   add('2026 season appearances/games',p=>p.seasonMetrics?.games,{digits:0});
   for(const [label,key,digits,suffix] of [['Exit velocity','exitVelocity',1,' mph'],['Hard-hit%','hardHitPct',1,'%'],['Barrel%','barrelPct',1,'%'],['xBA','xba',3,''],['xSLG','xslg',3,''],['xwOBA','xwoba',3,''],['Sprint speed','sprintSpeed',1,' ft/s']]) {
-    add(`2026 Statcast ${label}`,p=>p.statcast2026?.[key],{group:'hitter',better:'high',digits,suffix});
+    add(`2026 Statcast ${label}`,p=>p.statcast2026?.[key],{group:'statcast',better:'high',digits,suffix});
   }
   return rows;
 }
