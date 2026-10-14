@@ -1,3 +1,4 @@
+import {bullpenCandidates} from './bullpen-watch.mjs';
 import {ficDailyRating} from './daily-matchups.mjs';
 import {SNAPSHOT_URL, validateSnapshot} from './snapshot-contract.mjs';
 import {seasonMode} from './season-mode.mjs';
@@ -319,8 +320,64 @@ function textCell(value, title='') {
   return td;
 }
 
+
+function renderBullpenWatch() {
+  const table = document.getElementById('fa-rows')?.closest('.tablewrap');
+  if (!table || !data) return;
+  let section = document.getElementById('fa-bullpen-watch');
+  if (!section) {
+    section = document.createElement('section');
+    section.id = 'fa-bullpen-watch';
+    section.className = 'section';
+    table.insertAdjacentElement('beforebegin', section);
+  }
+  section.replaceChildren();
+  const heading = document.createElement('h2');
+  heading.textContent = 'Bullpen Opportunity Watch';
+  section.append(heading);
+  const note = document.createElement('p');
+  note.className = 'note';
+  note.textContent = 'Research only — historical 2026 ownership, partial 2027 fantasy-point model. Short-term 7/14/30-day RP performance is not a verified save/hold opportunity, role change, or add recommendation. Last known snapshot: ' + (data.generated_at || 'Not verified') + '.';
+  section.append(note);
+  const candidates = bullpenCandidates(data.pool);
+  if (!candidates.length) {
+    const empty = document.createElement('p');
+    empty.className = 'empty';
+    empty.textContent = 'No available relievers with verified recent production in the published snapshot. Save/hold opportunities and bullpen roles: Not verified.';
+    section.append(empty);
+    return;
+  }
+  const wrap = document.createElement('div');
+  wrap.className = 'tablewrap';
+  const board = document.createElement('table');
+  const head = document.createElement('thead');
+  const titleRow = document.createElement('tr');
+  for (const label of ['RP','MLB','7D FP/G','14D FP/G','30D FP/G','Trend','SV/HLD role']) {
+    const th=document.createElement('th');
+    th.textContent=label;
+    titleRow.append(th);
+  }
+  head.append(titleRow);
+  board.append(head);
+  const body=document.createElement('tbody');
+  for (const c of candidates) {
+    const tr=document.createElement('tr');
+    for (const value of [c.player.name,c.player.mlbTeam,c.seven?fmt(c.player.ppg7,2):'—',c.fourteen?fmt(c.player.ppg14,2):'—',c.thirty?fmt(c.player.ppg30,2):'—',c.label,c.opportunities]) {
+      const td=document.createElement('td');
+      td.textContent=value || '—';
+      if(value===c.label) td.className='tone-cell '+c.tone;
+      tr.append(td);
+    }
+    body.append(tr);
+  }
+  board.append(body);
+  wrap.append(board);
+  section.append(wrap);
+}
+
 function render() {
   if (!data) return;
+  renderBullpenWatch();
   const mode = seasonMode(data);
   ensureStatColumns(mode);
   const body = document.getElementById('fa-rows');

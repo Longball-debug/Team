@@ -52,6 +52,8 @@ on:
       - 'public/fic-weekly.mjs'
       - 'public/pl-weekly.mjs'
       - 'public/fa-filters.mjs'
+      - 'public/bullpen-watch.mjs'
+      - 'test_bullpen_watch.mjs'
       - 'public/player-lab.mjs'
       - 'public/player-comparison.mjs'
       - 'test_player_comparison.mjs'
@@ -92,7 +94,7 @@ jobs:
           node-version: '24'
 
       - name: Verify website freshness contract
-        run: node --test test_snapshot_contract.mjs test_rb_weekly.mjs test_daily_trends.mjs test_daily_matchups.mjs test_ui_ownership.mjs test_season_mode.mjs test_reload_stability.mjs test_missing_pitcher_trend.mjs test_player_comparison.mjs
+        run: node --test test_snapshot_contract.mjs test_rb_weekly.mjs test_daily_trends.mjs test_daily_matchups.mjs test_ui_ownership.mjs test_season_mode.mjs test_reload_stability.mjs test_missing_pitcher_trend.mjs test_player_comparison.mjs test_bullpen_watch.mjs
 
       - name: Collect Fantrax once
         run: python fantrax_refresh.py --root "$RUNNER_TEMP/fantasygm" --league-id gxq8uqpqmg5m5edj --no-prompt
@@ -150,6 +152,7 @@ jobs:
           cp public/fic-weekly.mjs dist/public/fic-weekly.mjs
           cp public/pl-weekly.mjs dist/public/pl-weekly.mjs
           cp public/fa-filters.mjs dist/public/fa-filters.mjs
+          cp public/bullpen-watch.mjs dist/public/bullpen-watch.mjs
           cp public/player-lab.mjs dist/public/player-lab.mjs
           cp public/player-comparison.mjs dist/public/player-comparison.mjs
           cp public/snapshot-contract.mjs dist/public/snapshot-contract.mjs
