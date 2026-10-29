@@ -97,8 +97,11 @@ jobs:
         run: node --test test_snapshot_contract.mjs test_rb_weekly.mjs test_daily_trends.mjs test_daily_matchups.mjs test_ui_ownership.mjs test_season_mode.mjs test_reload_stability.mjs test_missing_pitcher_trend.mjs test_player_comparison.mjs test_bullpen_watch.mjs
 
       - name: Collect Fantrax once
-        run: python fantrax_refresh.py --root "$RUNNER_TEMP/fantasygm" --league-id gxq8uqpqmg5m5edj --no-prompt
+        run: python fantrax_refresh.py --root "$RUNNER_TEMP/fantasygm" --league-id n81gfju2muo8y07b --no-prompt
 
+      # 2027 roster activation is separate from collection. The publisher currently
+      # validates historical 2026 ownership and must fail closed until the
+      # 2027 publication contract and roster completeness are verified.
       - name: Build complete sanitized website snapshot
         run: python public_snapshot.py --root "$RUNNER_TEMP/fantasygm"
 
