@@ -1,4 +1,4 @@
-import {SNAPSHOT_URL, validateSnapshot} from './snapshot-contract.mjs';
+import {loadPublishedSnapshot, subscribeSnapshot} from './snapshot-store.mjs';
 
 function signal(item) {
   if (!item?.sample_ok || !Number.isFinite(item.ops)) return null;
@@ -47,12 +47,10 @@ function decorate(data) {
   return true;
 }
 
-async function load() {
+async function load(incoming=null) {
   let data;
   try {
-    const response = await fetch(`${SNAPSHOT_URL}?fic=${Date.now()}`, {cache:'no-store'});
-    if (!response.ok) return;
-    data = validateSnapshot(await response.json());
+    data = (incoming || await loadPublishedSnapshot());
   } catch {
     return;
   }
@@ -70,4 +68,6 @@ async function load() {
 if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', load, {once:true});
 else load();
 
-document.querySelector('#weekly .reloadbtn')?.addEventListener('click', load);
+document.querySelector('#weekly .reloadbtn')?.addEventListener('click', () => load());
+
+subscribeSnapshot(next => load(next));

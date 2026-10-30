@@ -1,26 +1,20 @@
-# Final readiness review - October 11, 2026
+# Readiness review — October 30, 2026
 
-Starting revision 48ded07ee43fade11d33101e97a4e393401c7afb. Ready for limited offseason historical research; not finished for live 2027 league decisions.
+Based on main a8f0d25e3f175f4b85df5e2755d071bf217cef7c. The existing four pages and hosting implementation are preserved.
 
-## Complete
+## Verified and repaired
 
-Four-page navigation, manual snapshot reload, Free Agent search/type/position/activity filters, 100-row pagination and existing sorting/color rules. Failed reloads on Free Agent and Player Lab retain usable data with explicit stale warnings. Conservative MLBAM matching rejects unresolved/conflicting identities; representative duplicate cases and Harper/Civale were verified in Step 6. Historical 2026 ownership is preserved separately from partial configured 2027 scoring. Statcast, Baseball Monster and FIC collectors work; current-week PL/RotoBaller ratings are unavailable and stale data are suppressed.
+- Current Fantrax 2027 scoring configuration was read directly and all 12 team roster responses were inspected. Reduced/empty keeper rosters are valid offseason state.
+- A complete normalized-event scorer covers every configured category. Unsupported MLB source fields remain partial; absent categories receive no invented weights. Cumulative Saves + Holds is +5; the RP override values are confirmed, their slot/flex application is not.
+- Shared browser snapshot loading, same-origin data, timeout, older-publication rejection, true timestamps, periodic age checks and failed-reload retention are implemented. An explicit historical path permits dated research without treating stale ownership as actionable.
+- Unresolved/duplicate identities cannot carry statistics or Statcast across joins. Historical/stale/unknown-identity recommendations fail closed; tiny samples are not actionable. These are deterministic safeguards, not evidence of predictive value.
+- Historical research windows end on the official last completed regular-season game, excluding cancelled and postseason games. The 2026 ownership snapshot is not re-dated or merged into 2027.
+- Workflow no longer tries to publish 2027 collection through the 2026 publisher contract. A separate 2027 readiness check and historical enrichment precede an independent privacy gate. No Airtable writes or GitHub data publication occurs.
 
-## Critical repairs in this pass
+## Genuine season-data dependencies
 
-- Landing page counts were insufficiently labeled: the existing introductory text now identifies historical LONGBALL 2026 ownership/statistics, partial Fantrax 2027 scoring and pending primary-league activation.
-- Schedule collector requested/counts all game types, allowing spring-training volume to activate regular-season mode. It now requests and independently accepts only gameType R. Regression fixture includes 30 exhibition games, a postseason game and one regular game; only the regular game survives. No current matchup was fabricated.
+2027 roster activation must use an explicit 2027 ownership/availability contract, accept keeper-phase empty rosters, and stay separate from archived 2026 history. Live 2027 lineup slots, injuries, daily starters, starts used, weekly grades, matchup scores and outcome validation need real dated feeds. Applied RP/flex scoring examples and holds-provider reconciliation are not automatically solved by the season changing; obtain an actual Fantrax category breakdown.
 
-## Remaining classification
+## Verification limits
 
-CRITICAL before 2027 live operation: complete/confirm the primary 2027 rosters, then deliberately update collector, publication and reader league guards together. Present collector/workflow and publication/reader are pinned to the historical 2026 league ID; 2027 cannot silently replace it. Readiness inspection found Desert Rats and two other 2027 teams had only five players. Do not merge ownership across leagues.
-
-CRITICAL for exact fantasy-point accuracy: verify Fantrax RP override application and SVH event semantics; implement cycles, hitter picked-off penalties, no-hitter bonuses and aggregate QS coverage only from supported verified fields. Missing source fields currently default to zero, so current calculations are explicitly partial rather than exact Fantrax reconciliation. Raw historical baseball statistics remain useful.
-
-IMPORTANT: resolve remaining 198 formerly ambiguous identity records through authoritative ID crosswalks; 9,207 total pool identities lack verified MLB season-catalogue links. Valid traded/inactive/minor-league players can be withheld by conservative matching. Coordinate the independent page modules' refresh cadence and timestamps; manual reload currently does not necessarily regenerate the cloud snapshot. Validate recommendations against outcomes before treating heuristic colors as predictions.
-
-SEASON-DEPENDENT: verify real 2027 daily probable starters, weekly grids/grades, PL/RotoBaller articles, injuries, matchup scores, starts used and future schedule changes when authentic league/source evidence becomes available. Existing fixtures cover in-season/offseason and stale-rating suppression, not live future-season behavior. Scheduled date boundaries still rely on the calendar plus a regular-game-count threshold.
-
-OPTIONAL: reconcile older CONFIGURATION.md prose/test references and improve small-screen table ergonomics. No FanGraphs integration added; it remains absent.
-
-Tests: 70 Python and 41 Node tests passed once. No external-source retries were performed. The Cloudflare workflow provides deployment checks; final live verification follows deployment. No rebuild, migration, scoring-weight change, identity relaxation, ownership merge or new feature was introduced.
+Local preview relay is unavailable. Browser rendering and interaction QA for this revision are unverified. The existing production root returned unauthenticated HTTP 200 on October 30; that is public, and must not be described as private. The release adds mandatory Worker password authentication before static assets. It does not activate the Zero Trust billing plan. Signed server-expiring sessions and anonymous path denial are test-covered; post-deployment authenticated browser QA remains required.

@@ -1,5 +1,5 @@
+import {loadPublishedSnapshot, subscribeSnapshot} from './snapshot-store.mjs';
 import {appendRbSummary} from './rb-weekly.mjs';
-import {SNAPSHOT_URL, validateSnapshot} from './snapshot-contract.mjs';
 import {buildDailyTrendRows, dailyTrendFor, formatDailyFpg, selectDailyHitterActions} from './daily-trends.mjs';
 import {ficDailyRating, pitcherHandFromFic} from './daily-matchups.mjs';
 import {applySeasonMode} from './season-mode.mjs';
@@ -75,7 +75,7 @@ function rosterRecords(data) {
 
 function renderSummary(data, roster) {
   const updated = document.getElementById('home-updated');
-  if (updated) updated.textContent = new Date(data.generated_at).toLocaleTimeString([], {hour:'numeric', minute:'2-digit'});
+  if (updated) updated.textContent = new Date(data.generated_at).toLocaleString();
   const rc = document.getElementById('home-roster-count');
   if (rc) rc.textContent = String(roster.length);
   const faCount = (data.pool || []).filter(p => {
@@ -393,12 +393,10 @@ function renderCore(data) {
   renderSummary(data, roster);
 }
 
-async function refresh() {
+async function refresh(incoming=null) {
   try {
     setStatus('Loading verified snapshot…');
-    const response = await fetch(`${SNAPSHOT_URL}?refresh=${Date.now()}`, {cache:'no-store'});
-    if (!response.ok) throw new Error(`HTTP ${response.status}`);
-    snapshot = validateSnapshot(await response.json());
+    snapshot = (incoming || await loadPublishedSnapshot());
     renderCore(snapshot);
     // The enriched Free Agent Board is owned by fa-filters.mjs.
     // Do not render the legacy four-column free-agent table here; doing so
@@ -406,12 +404,7 @@ async function refresh() {
     const stamp = new Date(snapshot.generated_at).toLocaleString();
     setStatus(`Snapshot collected: ${stamp} | Browser loaded: ${new Date().toLocaleString()} | Reload reads published data; it does not generate new data. FP/FP-G are partial model values, not exact Fantrax totals · ${snapshot.source}`);
   } catch {
-    snapshot = null;
-    setStatus('Current data unavailable: the latest complete refresh could not be verified.');
-    ['daily-matchups','daily-trends','daily-pitcher-games','weekly-hitters','weekly-pitchers'].forEach(id => {
-      const body = document.getElementById(id);
-      if (body) body.replaceChildren();
-    });
+    setStatus(snapshot ? `STALE DATA — reload failed; retaining snapshot ${snapshot.generated_at}. Availability may have changed.` : 'Data unavailable: no verified snapshot is loaded.');
   }
 }
 
@@ -419,5 +412,6 @@ async function refresh() {
 
 const initial = location.hash.replace('#','');
 if (['daily','weekly','freeagents','lab'].includes(initial)) show(initial);
+subscribeSnapshot(next => refresh(next));
 // Load once on page open; subsequent refreshes are user-initiated.
 refresh();

@@ -1,4 +1,4 @@
-import {SNAPSHOT_URL, validateSnapshot} from './snapshot-contract.mjs';
+import {loadPublishedSnapshot, subscribeSnapshot} from './snapshot-store.mjs';
 import {seasonMode} from './season-mode.mjs';
 
 const TEAM_ALIASES = {
@@ -306,15 +306,13 @@ function renderSummary(data) {
   renderOpponentView(opponentHitters, opponentStarters, hitters, starters, schedule, days);
 }
 
-async function load() {
+async function load(incoming=null) {
   try {
-    const response = await fetch(`${SNAPSHOT_URL}?weeklySummary=${Date.now()}`, {cache:'no-store'});
-    if (!response.ok) throw new Error(`HTTP ${response.status}`);
-    renderSummary(validateSnapshot(await response.json()));
+    renderSummary((incoming || await loadPublishedSnapshot()));
   } catch {
     ensureWeeklySummary();
     const host = document.getElementById('weekly-glance');
-    if (host) {
+    if (host && !host.children.length) {
       host.replaceChildren();
       addMetric(host, 'Weekly Snapshot', 'Unavailable', 'Latest complete data could not be verified.');
     }
@@ -324,4 +322,6 @@ async function load() {
 if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', load, {once:true});
 else load();
 
-document.querySelector('#weekly .reloadbtn')?.addEventListener('click', load);
+document.querySelector('#weekly .reloadbtn')?.addEventListener('click', () => load());
+
+subscribeSnapshot(next => load(next));

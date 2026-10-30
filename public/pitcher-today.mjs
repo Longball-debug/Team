@@ -1,4 +1,4 @@
-import {SNAPSHOT_URL, validateSnapshot} from './snapshot-contract.mjs';
+import {loadPublishedSnapshot, subscribeSnapshot} from './snapshot-store.mjs';
 import {pitcherListDailyRating} from './daily-matchups.mjs';
 import {seasonMode} from './season-mode.mjs';
 
@@ -120,14 +120,12 @@ function ensureSection() {
   hitterSection.insertAdjacentElement('afterend', section);
 }
 
-async function render() {
+async function render(incoming=null) {
   ensureSection();
   const body = document.getElementById('daily-pitcher-matchups');
   if (!body) return;
   try {
-    const response = await fetch(`${SNAPSHOT_URL}?pitchers=${Date.now()}`, {cache:'no-store'});
-    if (!response.ok) throw new Error(`HTTP ${response.status}`);
-    const data = validateSnapshot(await response.json());
+    const data = (incoming || await loadPublishedSnapshot());
     const mode = seasonMode(data);
     const title = document.getElementById('daily-pitcher-title');
     const head = document.getElementById('daily-pitcher-head');
@@ -161,6 +159,7 @@ async function render() {
       body.append(row);
     }
   } catch {
+    if (body.children.length) return;
     body.replaceChildren();
     const row = document.createElement('tr');
     const cell = document.createElement('td');
@@ -175,4 +174,6 @@ async function render() {
 if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', render, {once:true});
 else render();
 
-document.querySelector('#daily .reloadbtn')?.addEventListener('click', render);
+document.querySelector('#daily .reloadbtn')?.addEventListener('click', () => render());
+
+subscribeSnapshot(next => render(next));
