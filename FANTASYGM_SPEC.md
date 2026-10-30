@@ -19,7 +19,7 @@ FantasyGM2027 is the Desert Rats decision-support site for LONGBALL. Fantrax is 
 7. Historical feeds may remain visible only when explicitly labeled as historical/recent-period data.
 
 ## UI ownership rule
-Each table/body has exactly one renderer owner. No second module may write, clear, or re-render the same DOM target.
+Each table/body has exactly one renderer owner. All page modules share one timestamped snapshot via `snapshot-store.mjs`; successful reloads update every page while preserving filters and selections. No second module may write, clear, or re-render the same DOM target.
 
 Current ownership:
 - Free Agent Board `#fa-rows`: `public/fa-filters.mjs` only.
@@ -68,7 +68,7 @@ Current heuristic:
 - PASS: score <= -2
 - WATCH: otherwise
 
-This is a decision signal, not a validated predictive model. Backtesting is required before treating it as predictive.
+This is an unvalidated research heuristic. Historical/stale ownership and unresolved identities disable actionable LOOK/PASS signals and vs Rats upgrade advice. Backtesting with dated recommendations and later outcomes is required before treating it as predictive.
 
 ## Refresh behavior
 - Free Agent Board refresh is owned by `public/fa-filters.mjs`.
@@ -98,7 +98,7 @@ Target identity model:
 External adapters should move toward canonical IDs rather than direct `player.name` lookup.
 
 ## Offseason mode
-The site now has an explicit season mode. It is IN-SEASON during the April–September calendar window, or when the verified weekly schedule contains at least 20 MLB games. Otherwise it is OFFSEASON. This keeps spring training in offseason mode while allowing a real late-March regular-season week to activate in-season mode.
+Historical and stale snapshots force historical/offseason research mode, regardless of calendar or archived game counts. Current snapshots have an explicit season mode. It is IN-SEASON during the April–September calendar window, or when the verified weekly schedule contains at least 20 MLB games. Otherwise it is OFFSEASON. This keeps spring training in offseason mode while allowing a real late-March regular-season week to activate in-season mode.
 
 In OFFSEASON MODE:
 - Show a visible OFFSEASON MODE badge.
@@ -127,3 +127,7 @@ Before deployment, tests must cover:
 
 ## Change-control rule
 Do not add a new metric or data source unless it changes a real roster, start/sit, add/drop, trade, keeper or draft decision. Prefer removing duplicate logic over adding parallel logic.
+
+## Private access
+
+The existing Worker authenticates every request before static assets, including JSON and module URLs. Owner login uses a strong password whose verifier is configured separately from its secret value. Server-signed sessions expire within 12 hours and use secure HttpOnly same-site cookies. Public previews are disabled. No new billing plan is needed.

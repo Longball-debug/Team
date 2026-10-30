@@ -4,7 +4,7 @@ class NoRedirect(urllib.request.HTTPRedirectHandler):
     def redirect_request(self,*args,**kwargs):return None
 
 def access_gate(url):
-    request=urllib.request.Request(url,headers={'Cache-Control':'no-cache'})
+    request=urllib.request.Request(url,headers={'Cache-Control':'no-cache','User-Agent':'FantasyGM2027/1.0'})
     try:
         response=urllib.request.build_opener(NoRedirect()).open(request,timeout=20)
         code=response.status;location=response.headers.get('Location','');auth=response.headers.get('X-FantasyGM-Auth','')

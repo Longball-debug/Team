@@ -11,3 +11,9 @@ class PrivateDeploymentTests(unittest.TestCase):
             with self.subTest(url=url),patch('urllib.request.build_opener') as opener:
                 opener.return_value.open.return_value=Mock(status=302,headers={'Location':url})
                 self.assertEqual(access_gate('https://example.test/'),expected)
+
+    def test_private_worker_gate_is_required_not_generic_denial(self):
+        for code,headers,expected in [(401,{'X-FantasyGM-Auth':'password-required'},True),(401,{},False),(403,{},False),(503,{},False)]:
+            with self.subTest(code=code),patch('urllib.request.build_opener') as opener:
+                opener.return_value.open.return_value=Mock(status=code,headers=headers)
+                self.assertEqual(access_gate('https://example.test/'),expected)

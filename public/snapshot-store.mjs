@@ -21,7 +21,7 @@ export async function loadPublishedSnapshot() {
 export function snapshotNotice(data, now=Date.now()) {
   if (!data) return 'Data unavailable. No verified snapshot is loaded.';
   const stale = now-Date.parse(data.generated_at)>30*3600000;
-  return `${stale?'STALE DATA — ':''}${data.historical?'Historical 2026 research only. Ownership is historical; add/drop and start/sit recommendations are disabled. ':''}Collected: ${new Date(data.generated_at).toLocaleString()}. Reload reads the published snapshot; it does not collect new data. FP is a partial 2027 model. RP decisions use an unverified appearance-role assumption; Saves + Holds is +5 per event. Cycles, hitter pickoffs and aggregate NH/QS may be unavailable.`;
+  return `${stale?'STALE DATA — ':''}${data.historical?'Historical 2026 research only. Ownership is historical; add/drop and start/sit recommendations are disabled. ':''}Ownership collected: ${new Date(data.generated_at).toLocaleString()}. Research windows end: ${data.player_lab?.recent_end_date || data.recent_14d?.end_date || 'unavailable'}. Reload reads the published snapshot; it does not collect new data. FP is a partial 2027 model. RP decisions use an unverified appearance-role assumption; Saves + Holds is +5 per event. Cycles, hitter pickoffs and aggregate NH/QS may be unavailable.`;
 }
 if (typeof document !== 'undefined') {
   const banner = document.createElement('div');
