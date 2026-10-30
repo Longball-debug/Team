@@ -17,4 +17,4 @@ Based on main a8f0d25e3f175f4b85df5e2755d071bf217cef7c. The existing four pages 
 
 ## Verification limits
 
-Local preview relay is unavailable. Browser rendering and interaction QA for this revision are unverified. The existing production root returned unauthenticated HTTP 200 on October 30; that is public, and must not be described as private. Private deployment remains blocked until owner-only Cloudflare Access is configured and anonymous website/data requests are redirected. Do not deploy this revision publicly to work around that requirement.
+Local preview relay is unavailable. Browser rendering and interaction QA for this revision are unverified. The existing production root returned unauthenticated HTTP 200 on October 30; that is public, and must not be described as private. The release adds mandatory Worker password authentication before static assets. It does not activate the Zero Trust billing plan. Signed server-expiring sessions and anonymous path denial are test-covered; post-deployment authenticated browser QA remains required.

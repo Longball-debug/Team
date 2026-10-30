@@ -1,8 +1,16 @@
 {
   "$schema": "./node_modules/wrangler/config-schema.json",
   "name": "fantasygm2027-desert-rats",
+  "main": "worker.mjs",
   "compatibility_date": "2026-09-26",
+  "preview_urls": false,
+  "vars": {
+    "OWNER_LOGIN": "commish",
+    "OWNER_PASSWORD_SHA256": "69dc5d35f472549b12d48f35e448a670be282a04ce876171cbe34d5c8e75908b"
+  },
   "assets": {
-    "directory": "./dist"
+    "directory": "./dist",
+    "binding": "ASSETS",
+    "run_worker_first": true
   }
 }

@@ -24,9 +24,9 @@ Website data comes from `/public/fantasygm.json` on the authenticated site origi
 
 ## Deployment
 
-The existing daily 05:45 America/Phoenix schedule is retained. The workflow tests, verifies 2027 readiness, enriches a temporary historical research snapshot, builds the four pages, and requires Cloudflare Access redirects for both website and data before deployment. It does not commit collected data or write external systems. Failed source checks preserve the existing deployment.
+The existing daily 05:45 America/Phoenix schedule is retained. The workflow tests, verifies 2027 readiness, enriches a temporary historical research snapshot, builds the four pages, and tests mandatory Worker authentication before deployment. It verifies anonymous website/data requests are denied after deployment. It does not commit collected data or write external systems. Failed source checks preserve the existing deployment.
 
-Cloudflare Access must restrict the production host to its owner. No public preview or alternate host should be enabled. `verify_private.py` must pass before and after deployment; a successful HTTP 200 without sign-in fails the check. Cloudflare Access setup is an account prerequisite, not a 2027 data dependency.
+The existing Worker authenticates every request before static asset handling (`run_worker_first: true`). A strong owner password stays out of GitHub; only its SHA-256 verifier is configured. A separate random session-signing key is masked in Actions and stored as a Cloudflare Worker secret. Sessions use HMAC, a server-checked 12-hour expiration, HttpOnly/Secure/SameSite cookies, same-origin login and private cache headers. Public previews are disabled. Anonymous website/data requests must return the private sign-in gate. No Zero Trust subscription or billing activation is required.
 
 Local verification:
 
