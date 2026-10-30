@@ -6,7 +6,7 @@
   "preview_urls": false,
   "vars": {
     "OWNER_LOGIN": "commish",
-    "OWNER_PASSWORD_SHA256": "69dc5d35f472549b12d48f35e448a670be282a04ce876171cbe34d5c8e75908b"
+    "OWNER_PASSWORD_SHA256": "44acd1d620bd18b0bdaf217b5f867d537f25937a13c59533780efccf0e454b9d"
   },
   "assets": {
     "directory": "./dist",
