@@ -1,0 +1,119 @@
+{
+  "league_id": "n81gfju2muo8y07b",
+  "season": 2027,
+  "verified_at": "2026-10-30",
+  "source": "https://www.fantrax.com/fxea/general/getLeagueInfo?leagueId=n81gfju2muo8y07b",
+  "categories": {
+    "HITTING": {
+      "BB": {
+        "Default": "points1"
+      },
+      "IBB": {
+        "Default": "points1"
+      },
+      "HR": {
+        "Default": "points5"
+      },
+      "CYC": {
+        "Default": "points5"
+      },
+      "GIDP": {
+        "Default": "points-2"
+      },
+      "SB": {
+        "Default": "points3"
+      },
+      "3B": {
+        "Default": "points4"
+      },
+      "CS": {
+        "Default": "points-2"
+      },
+      "2B": {
+        "Default": "points3"
+      },
+      "1B": {
+        "Default": "points1.5"
+      },
+      "R": {
+        "Default": "points1"
+      },
+      "SF": {
+        "Default": "points1"
+      },
+      "PKO": {
+        "Default": "points-1"
+      },
+      "SH": {
+        "Default": "points1"
+      },
+      "HBP": {
+        "Default": "points1"
+      },
+      "RBI": {
+        "Default": "points2"
+      },
+      "SO": {
+        "Default": "points-0.5"
+      }
+    },
+    "PITCHING": {
+      "BB": {
+        "Default": "points-0.5"
+      },
+      "QS": {
+        "Default": "points5"
+      },
+      "CG": {
+        "Default": "points2"
+      },
+      "SVH": {
+        "Default": "points5"
+      },
+      "IP": {
+        "Default": "points2"
+      },
+      "H": {
+        "Default": "points-0.5"
+      },
+      "HR": {
+        "Default": "points-2"
+      },
+      "K": {
+        "Default": "points1.5"
+      },
+      "L": {
+        "Default": "points-5",
+        "RP": "points-2"
+      },
+      "ER": {
+        "Default": "points-2"
+      },
+      "BS": {
+        "Default": "points-3"
+      },
+      "PKO": {
+        "Default": "points1"
+      },
+      "W": {
+        "Default": "points5",
+        "RP": "points2"
+      },
+      "HB": {
+        "Default": "points-1"
+      },
+      "NH": {
+        "Default": "points5"
+      },
+      "SHO": {
+        "Default": "points2"
+      }
+    }
+  },
+  "limitations": [
+    "RP slot/flex application requires a Fantrax scoring breakdown.",
+    "Saves + Holds formula verified; provider reconciliation still pending.",
+    "MLB aggregate feeds omit cycles, hitter pickoffs, quality starts and no-hitters.",
+    "Balks, wild pitches and perfect-game bonuses are absent from the verified league configuration; no extra weights are invented."
+  ]
+}

@@ -1,6 +1,7 @@
+import {loadPublishedSnapshot, subscribeSnapshot} from './snapshot-store.mjs';
+import {verifiedIdentity} from './player-comparison.mjs';
 import {bullpenCandidates} from './bullpen-watch.mjs';
 import {ficDailyRating} from './daily-matchups.mjs';
-import {SNAPSHOT_URL, validateSnapshot} from './snapshot-contract.mjs';
 import {seasonMode} from './season-mode.mjs';
 
 let pageIndex = 0;
@@ -19,8 +20,8 @@ function reloadWarning(failed) {
   }
   warning.hidden = !failed;
   warning.textContent = data
-    ? `STALE DATA � reload failed. Showing the last successfully loaded snapshot (${data.generated_at}). Availability and recommendations may have changed. Retry Reload Snapshot.`
-    : 'DATA UNAVAILABLE � reload failed. No verified snapshot is loaded. Retry Reload Snapshot.';
+    ? `STALE DATA — reload failed. Showing the last successfully loaded snapshot (${data.generated_at}). Availability and recommendations may have changed. Retry Reload Snapshot.`
+    : 'DATA UNAVAILABLE — reload failed. No verified snapshot is loaded. Retry Reload Snapshot.';
 }
 
 
@@ -55,7 +56,7 @@ function isFreeAgent(player) {
 }
 
 function hasRecentStats(player) {
-  return Number.isFinite(player.points14) && Number.isFinite(player.ppg14) && Number(player.games14) > 0;
+  return verifiedIdentity(player) && Number.isFinite(player.points14) && Number.isFinite(player.ppg14) && Number(player.games14) > 0;
 }
 
 function matchesPosition(player, wanted) {
@@ -156,6 +157,7 @@ function desertRatsPlayers() {
 }
 
 function rosterUpgrade(player) {
+  if (data?.historical || data?.stale) return {label:'Historical only',tone:'gray',title:'Historical ownership cannot establish an available upgrade today.'};
   if (!hasRecentStats(player)) return {label:'Not enough data', tone:'gray', title:'Candidate has no verified 14-day FP/G.'};
   const peers = desertRatsPlayers().filter(p => hasRecentStats(p) && sharesUsablePosition(player, p));
   if (!peers.length) return {label:'No comp', tone:'gray', title:'No Desert Rats player at a usable shared position has verified 14-day FP/G.'};
@@ -262,7 +264,8 @@ function percentileRank(value, peers) {
 }
 
 function overallSignal(player, allFreeAgents, weeks, mode={offseason:false}) {
-  if (!hasRecentStats(player)) return {label:'NOT ENOUGH DATA', tone:'gray', title:'Overall signal requires verified recent fantasy production.'};
+  if (data?.historical || data?.stale || !verifiedIdentity(player)) return {label:'RESEARCH ONLY', tone:'gray', title:'Current ownership, scoring reconciliation and predictive outcome validation are required before actionable advice.'};
+  if (!hasRecentStats(player) || player.games14 < 2) return {label:'NOT ENOUGH DATA', tone:'gray', title:'Overall signal requires verified recent fantasy production.'};
 
   const sameType = allFreeAgents.filter(p => isPitcher(p) === isPitcher(player) && hasRecentStats(p));
   const pct = percentileRank(player.ppg14, sameType.map(p => p.ppg14));
@@ -479,19 +482,17 @@ function render() {
       ? ` Sorted by 14-day fantasy points, high to low. Trend compares verified 7D vs 30D FP/G. 14D window: ${recent.start_date} through ${recent.end_date}.`
       : ' 14-day fantasy-point feed is not verified in the current snapshot.';
     note.textContent = mode.offseason
-      ? `OFFSEASON MODE. ${activityLabel}${source} LOOK/WATCH/PASS uses recent production rank and verified trend only; forward schedule and FIC inputs are intentionally excluded. vs Rats compares each candidate's verified 14D FP/G with the lowest verified Desert Rats FP/G at a shared usable position; ±1.00 FP/G is treated as the close-call band.`
-      : `${activityLabel}${source}${dates} LOOK/WATCH/PASS combines 14D PPG rank among available peers, verified trend, next-week and week+2 Baseball Monster schedule ease, plus verified FIC context for hitters. vs Rats compares each candidate's verified 14D FP/G with the lowest verified Desert Rats FP/G at a shared usable position; ±1.00 FP/G is treated as the close-call band. Opponents come from MLB Stats API; no signal is based on unverified data.`;
+      ? `OFFSEASON RESEARCH. Historical availability is dated to the ownership snapshot. ${activityLabel}${source} Historical/stale ownership disables actionable signals and vs Rats upgrade advice. Partial FP and trends describe past production; predictive accuracy is unvalidated.`
+      : `${activityLabel}${source}${dates} LOOK/WATCH/PASS combines 14D PPG rank among available peers, verified trend, next-week and week+2 Baseball Monster schedule ease, plus verified FIC context for hitters. vs Rats compares each candidate's verified 14D FP/G with the lowest verified Desert Rats FP/G at a shared usable position; ±1.00 FP/G is treated as the close-call band. Opponents come from MLB Stats API; Signals are research heuristics; predictive accuracy has not been validated.`;
   }
 }
 
-async function load() {
+async function load(incoming=null) {
   ensurePositionFilter();
   ensureActivityFilter();
   ensureStatColumns();
   try {
-    const response = await fetch(`${SNAPSHOT_URL}?fa=${Date.now()}`, {cache:'no-store'});
-    if (!response.ok) throw new Error(`HTTP ${response.status}`);
-    data = validateSnapshot(await response.json());
+    data = (incoming || await loadPublishedSnapshot());
     render();
     reloadWarning(false);
     const status = document.querySelector('#freeagents [data-status]');
@@ -507,6 +508,8 @@ ensureActivityFilter();
 ensureStatColumns();
 document.getElementById('fa-search')?.addEventListener('input', render);
 document.getElementById('fa-type')?.addEventListener('change', render);
-document.querySelector('#freeagents .reloadbtn')?.addEventListener('click', load);
+document.querySelector('#freeagents .reloadbtn')?.addEventListener('click', () => load());
 load();
 
+
+subscribeSnapshot(next => load(next));

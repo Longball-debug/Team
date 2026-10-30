@@ -1,6 +1,7 @@
 """Collect the last three verified MLB pitching games for Desert Rats pitchers."""
 from __future__ import annotations
 from scoring_fields import missing_fields, source_number
+from scoring_model import score_events
 
 import json
 import re
@@ -86,25 +87,15 @@ def longball_points(stat: dict) -> float | None:
     no_hitter = (stat.get("gamesPlayed") == 1 and gs == 1
                  and _num(stat, "completeGames") == 1 and ip >= 9
                  and hits == 0)
-    points = (
-        ip * 2
-        + k * 1.5
-        - er * 2
-        - hits * 0.5
-        - bb * 0.5
-        + qs * 5
-        + win * win_points
-        + (saves + holds) * 5
-        + loss * loss_points
-        - blown * 3
-        + _num(stat, "completeGames") * 2
-        - _num(stat, "hitBatsmen")
-        - _num(stat, "homeRuns") * 2
-        + _num(stat, "pickoffs")
-        + _num(stat, "shutouts") * 2
-        + (5 if no_hitter else 0)
-    )
-    return round(points, 2)
+    if gs not in (0,1) or (saves and holds):
+        return None
+    result = score_events({
+        'IP':ip,'K':k,'ER':er,'H':hits,'BB':bb,'QS':qs,'W':win,
+        'SVH':saves+holds,'L':loss,'BS':blown,'CG':_num(stat,'completeGames'),
+        'HB':_num(stat,'hitBatsmen'),'HR':_num(stat,'homeRuns'),
+        'PKO':_num(stat,'pickoffs'),'SHO':_num(stat,'shutouts'),'NH':int(no_hitter),
+    }, 'PITCHING', 'RP' if relief_role else 'Default')
+    return round(result['points'],2) if result['points'] is not None else None
 
 
 def _all_mlb_players(season: int) -> dict[str, list[dict]]:

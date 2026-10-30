@@ -11,8 +11,10 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from zoneinfo import ZoneInfo
 
+from stat_period import statistics_end
 from scoring_fields import missing_fields, source_number, games_count
 
+from scoring_model import WEIGHTS
 BASE = "https://statsapi.mlb.com/api/v1"
 
 # FantasyGM2027 / LONGBALL 2027 working scoring.
@@ -27,6 +29,13 @@ PIT = {
     "SP_L": -5.0, "RP_L": -2.0, "BS": -3.0,
     "CG": 2.0, "HB": -1.0, "HR": -2.0, "PKO": 1.0, "SHO": 2.0,
 }
+
+# Protect adapters from drifting away from verified league configuration.
+for _code in HIT:
+    HIT[_code] = WEIGHTS['HITTING'][_code]['Default']
+for _code in PIT:
+    _category = {'SP_W':'W','RP_W':'W','SP_L':'L','RP_L':'L','SV':'SVH','HLD':'SVH'}.get(_code,_code)
+    PIT[_code] = WEIGHTS['PITCHING'][_category]['RP' if _code.startswith('RP_') else 'Default']
 
 
 def fetch_json(path: str, params: dict) -> dict:
@@ -119,6 +128,7 @@ def pitcher_points(s: dict) -> float | None:
 def splits(group: str, start: str, end: str) -> list[dict]:
     payload = fetch_json("stats", {
         "stats": "byDateRange",
+        "gameType": "R",
         "group": group,
         "sportIds": 1,
         "playerPool": "ALL",
@@ -191,7 +201,7 @@ def main() -> None:
 
     data = json.loads(args.snapshot.read_text(encoding="utf-8"))
     today = datetime.now(ZoneInfo("America/Phoenix")).date()
-    end = today - timedelta(days=1)
+    end = statistics_end(data, today)
     start = end - timedelta(days=13)
     start_s, end_s = start.isoformat(), end.isoformat()
 

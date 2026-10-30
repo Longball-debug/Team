@@ -89,3 +89,7 @@ Authoritative references:
 - https://statsapi.mlb.com/api/v1/people/605483/stats?stats=gameLog&group=pitching&season=2024&startDate=2024-08-02&endDate=2024-08-02
 
 No Fantrax setting, roster ownership or active website league changed. Remaining exact-scoring limitations are slot-specific W/L application, source-provider SVH reconciliation, cycles/hitter pickoffs, aggregate NH and QS coverage. Current calculations remain explicitly partial and withhold missing supported events.
+
+## October 30, 2026 direct re-verification
+
+Read-only `getLeagueInfo` for `n81gfju2muo8y07b` again returned the complete configured categories and cumulative settings. They match `public/scoring-model.json`, including pitching HR -2, SHO +2, K +1.5, SVH +5 and W/L RP +2/-2. No WP, BK or perfect-game category is configured. The complete normalized-event engine now covers every configured category and rejects missing event counts/decision roles; the MLB adapters remain partial where their source cannot establish those events. A cycle can be derived only from a complete single-game hit-type line. Aggregate totals cannot establish it. No applied Fantrax scoring result was invented.

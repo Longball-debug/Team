@@ -14,10 +14,11 @@ for (const name of ['fa-filters', 'player-lab']) {
       ensureLayout(){}, ensurePositionFilter(){}, ensureActivityFilter(){}, ensureStatColumns(){}, render(){},
       fetch: async () => ({ok:!failed,status:503,json:async()=>({generated_at:'new'})}),
       validateSnapshot:value=>value,
+      loadPublishedSnapshot:async()=>{if(failed) throw Error('503');return context.validateSnapshot({generated_at:'new'});},
       document:{getElementById:id=>elements.get(id),createElement:()=>({style:{},setAttribute(){}}),querySelector:()=>({prepend:el=>elements.set(el.id,el)})}
     });
     const warning = source.slice(source.indexOf('function reloadWarning'),source.indexOf('\nfunction ',source.indexOf('function reloadWarning')+10));
-    const start = source.indexOf('async function load()');
+    const start = source.indexOf('async function load(incoming=null)');
     const load = source.slice(start,source.indexOf('\n}\n',start)+3);
     vm.runInContext(warning+'\n'+load,context);
     await context.load();
@@ -50,9 +51,10 @@ test('Player Lab reload feedback distinguishes newer, unchanged, older and faile
     data:{generated_at:'2026-10-13T11:00:00Z'}, Date, SNAPSHOT_URL:'snapshot',
     ensureLayout(){}, render(){}, reloadWarning:value=>{warning=value;},
     fetch:async()=>({ok:!failed,status:503,json:async()=>next}), validateSnapshot:value=>value,
+    loadPublishedSnapshot:async()=>{if(failed) throw Error('503');return next;},
     document:{getElementById:()=>feedback,querySelector:()=>({})}
   });
-  const start=source.indexOf('async function load()');
+  const start=source.indexOf('async function load(incoming=null)');
   vm.runInContext(source.slice(start,source.indexOf('\n}\n',start)+3),context);
   await context.load();
   assert.match(feedback.textContent,/newer published snapshot was loaded/);

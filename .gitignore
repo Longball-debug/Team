@@ -6,3 +6,6 @@ data/
 logs/
 __pycache__/
 node_modules/
+dist/
+.openai/
+public/readiness.json

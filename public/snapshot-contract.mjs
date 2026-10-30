@@ -1,4 +1,4 @@
-export const SNAPSHOT_URL = 'https://raw.githubusercontent.com/Longball-debug/Team/main/public/fantasygm.json';
+export const SNAPSHOT_URL = '/public/fantasygm.json';
 
 function freshFetchedAt(value, now, maxAgeHours=36) {
   if (typeof value !== 'string') return null;
@@ -11,10 +11,14 @@ function freshFetchedAt(value, now, maxAgeHours=36) {
 
 function cleanPool(pool) {
   if (!Array.isArray(pool)) return [];
-  return pool.map(p => ({
+  const counts = new Map();
+  for (const p of pool) if (p.mlbId) counts.set(p.mlbId,(counts.get(p.mlbId)||0)+1);
+  return pool.map(p => {
+    const verified = p.identityStatus === 'Verified' && Number.isInteger(p.mlbId) && p.mlbId > 0 && counts.get(p.mlbId) === 1;
+    const clean = {
     fantraxId:p.fantraxId,
-    mlbId:Number.isInteger(p.mlbId) && p.mlbId > 0 ? p.mlbId : null,
-    identityStatus:p.identityStatus === "Verified" ? "Verified" : "Not verified",
+    mlbId:verified ? p.mlbId : null,
+    identityStatus:verified ? 'Verified' : 'Not verified',
     name:p.name,
     mlbTeam:p.mlbTeam,
     availability:p.availability,
@@ -31,9 +35,15 @@ function cleanPool(pool) {
     points30:Number.isFinite(p.points30) ? p.points30 : null,
     games30:Number.isFinite(p.games30) ? p.games30 : null,
     ppg30:Number.isFinite(p.ppg30) ? p.ppg30 : null,
-    statcast2026:cleanStatcastPlayer(p.statcast2026),
+    statcast2026:verified && String(p.statcast2026?.savantId) === String(p.mlbId) ? cleanStatcastPlayer(p.statcast2026) : null,
     seasonMetrics:p.seasonMetrics && typeof p.seasonMetrics === 'object' ? {...p.seasonMetrics} : null,
-  }));
+    };
+    if (!verified) {
+      for (const days of [7,14,30]) for (const key of ['points','games','ppg']) clean[key+days]=null;
+      clean.seasonMetrics=null;
+    }
+    return clean;
+  });
 }
 
 function cleanStatcastPlayer(value) {
@@ -344,23 +354,36 @@ function cleanPitcherList(value, now) {
   };
 }
 
-export function validateSnapshot(value, now = Date.now()) {
+export function validateSnapshot(value, now = Date.now(), {allowHistorical=false} = {}) {
   const fail = () => { throw new Error('The latest complete Fantrax refresh is unavailable or overdue.'); };
   if (!value || value.schema_version !== 1 || value.league_id !== 'gxq8uqpqmg5m5edj') fail();
   const age = now - Date.parse(value.generated_at);
-  if (!Number.isFinite(age) || age < -300000 || age > 30*3600000) fail();
+  const historical = value.league_id === 'gxq8uqpqmg5m5edj' && String(value.source).startsWith('Historical LONGBALL 2026');
+  if (!Number.isFinite(age) || age < -300000 || (age > 30*3600000 && !(allowHistorical && historical))) fail();
   if (!Array.isArray(value.teams) || value.teams.length !== 12 || !Array.isArray(value.players) || !value.players.length) fail();
   const teams = new Set(value.teams.map(t => t['Team ID']));
   if (teams.size !== 12 || value.teams.some(t => typeof t['Team ID'] !== 'string' || !t['Team ID'] || typeof t.Team !== 'string' || !t.Team.trim() || (t.Record !== undefined && !/^\d+-\d+-\d+$/.test(t.Record)) || (t.Points !== undefined && (typeof t.Points !== 'number' || !Number.isFinite(t.Points))))) fail();
   if (value.teams.filter(t => t.Team.trim().toLowerCase() === 'desert rats').length !== 1) fail();
   if (new Set(value.players.map(p => p['Player ID'])).size !== value.players.length || value.players.some(p => typeof p['Player ID'] !== 'string' || !p['Player ID'] || !teams.has(p['Fantasy Team ID']) || ['Player','Positions','Status','MLB Team'].some(k => p[k] !== undefined && p[k] !== null && typeof p[k] !== 'string'))) fail();
   if (value.teams.some(t => !value.players.some(p => p['Fantasy Team ID'] === t['Team ID']))) fail();
+  if (Array.isArray(value.pool)) {
+    if (value.pool.some(p => !p || typeof p.fantraxId !== 'string' || !p.fantraxId)) fail();
+    if (new Set(value.pool.map(p=>p.fantraxId)).size !== value.pool.length) fail();
+    const poolById = new Map(value.pool.map(p=>[p.fantraxId,p]));
+    for (const p of value.players) {
+      const joined = poolById.get(p['Player ID']);
+      if (joined && (joined.teamId !== p['Fantasy Team ID'] || /free|^fa$/i.test(joined.availability))) fail();
+    }
+  }
 
   return {
     schema_version:1,
     league_id:value.league_id,
     generated_at:value.generated_at,
     source:typeof value.source === 'string' ? value.source : 'Fantrax REST API',
+    historical,
+    stale:age > 30*3600000,
+    decisions_enabled:!historical && age <= 30*3600000,
     teams:value.teams.map(t => ({Team:t.Team,'Team ID':t['Team ID'],Record:t.Record,Points:t.Points})),
     players:value.players.map(p => ({'Player ID':p['Player ID'],'Fantasy Team ID':p['Fantasy Team ID'],Player:p.Player,'MLB Team':p['MLB Team'],Positions:p.Positions,Status:p.Status})),
     pool:cleanPool(value.pool),

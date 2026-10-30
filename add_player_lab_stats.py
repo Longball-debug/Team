@@ -7,13 +7,14 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from zoneinfo import ZoneInfo
 
+from stat_period import statistics_end
 from scoring_fields import source_number, games_count
 
 from add_recent_14d_stats import _put_unique, fetch_json, hitter_points, is_pitcher, norm, num, pitcher_points, player_name
 
 
 def stat_splits(group: str, stats: str, **params) -> list[dict]:
-    query = {"stats": stats, "group": group, "sportIds": 1, "playerPool": "ALL", "limit": 5000, "hydrate": "person,team", **params}
+    query = {"stats": stats, "gameType": "R", "group": group, "sportIds": 1, "playerPool": "ALL", "limit": 5000, "hydrate": "person,team", **params}
     payload = fetch_json("stats", query)
     blocks = payload.get("stats") or []
     if not blocks:
@@ -102,7 +103,7 @@ def main() -> None:
 
     data = json.loads(args.snapshot.read_text(encoding="utf-8"))
     today = datetime.now(ZoneInfo("America/Phoenix")).date()
-    end = today - timedelta(days=1)
+    end = statistics_end(data, today)
     season = end.year
 
     windows = {}

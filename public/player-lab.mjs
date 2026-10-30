@@ -1,5 +1,5 @@
+import {loadPublishedSnapshot, subscribeSnapshot} from './snapshot-store.mjs';
 import {verifiedIdentity, addComparisonPlayer, comparisonPlayers, comparisonRows} from './player-comparison.mjs';
-import {SNAPSHOT_URL, validateSnapshot} from './snapshot-contract.mjs';
 import {seasonMode} from './season-mode.mjs';
 
 let data = null;
@@ -15,8 +15,8 @@ function reloadWarning(failed) {
   }
   warning.hidden = !failed;
   warning.textContent = data
-    ? `STALE DATA � reload failed. Showing the last successfully loaded snapshot (${data.generated_at}). Availability and recommendations may have changed. Retry Reload Snapshot.`
-    : 'DATA UNAVAILABLE � reload failed. No verified snapshot is loaded. Retry Reload Snapshot.';
+    ? `STALE DATA — reload failed. Showing the last successfully loaded snapshot (${data.generated_at}). Availability and recommendations may have changed. Retry Reload Snapshot.`
+    : 'DATA UNAVAILABLE — reload failed. No verified snapshot is loaded. Retry Reload Snapshot.';
 }
 
 let selectedId = null;
@@ -503,12 +503,10 @@ function renderComparison() {
   table.append(body);wrap.append(table);section.append(wrap);
 }
 
-async function load() {
+async function load(incoming=null) {
   ensureLayout();
   try {
-    const response = await fetch(`${SNAPSHOT_URL}?lab=${Date.now()}`, {cache:'no-store'});
-    if (!response.ok) throw new Error(`HTTP ${response.status}`);
-    const next = validateSnapshot(await response.json());
+    const next = (incoming || await loadPublishedSnapshot());
     const previousTimestamp = data?.generated_at;
     if (previousTimestamp && Date.parse(next.generated_at) < Date.parse(previousTimestamp)) throw new Error('Published snapshot is older than loaded data');
     data = next;
@@ -532,6 +530,8 @@ async function load() {
 
 ensureLayout();
 document.getElementById('lab-search')?.addEventListener('input', render);
-document.querySelector('#lab .reloadbtn')?.addEventListener('click', load);
+document.querySelector('#lab .reloadbtn')?.addEventListener('click', () => load());
 load();
 
+
+subscribeSnapshot(next => load(next));

@@ -1,183 +1,54 @@
-name: FantasyGM cloud refresh
+name: FantasyGM readiness and private deploy
 on:
   workflow_dispatch:
   push:
-    branches:
-      - main
-    paths:
-      - '.github/workflows/fantasygm-refresh.yml'
-      - 'public_snapshot.py'
-      - 'player_identity.py'
-      - 'test_player_identity.py'
-      - 'shared_snapshot.py'
-      - 'mlb_schedule.py'
-      - 'add_weekly_schedule.py'
-      - 'add_baseballmonster_ease.py'
-      - 'test_baseballmonster_ease.py'
-      - 'add_fic_matchups.py'
-      - 'test_fic_matchups.py'
-      - 'add_pitcherlist.py'
-      - 'test_pitcherlist.py'
-      - 'add_rotoballer_weekly.py'
-      - 'rotoballer_ratings.py'
-      - 'test_rotoballer_weekly.py'
-      - 'test_rb_weekly.mjs'
-      - 'public/rb-weekly.mjs'
-      - 'mlb_pitcher_logs.py'
-      - 'add_pitcher_logs.py'
-      - 'test_pitcher_identity.py'
-      - 'add_recent_14d_stats.py'
-      - 'scoring_fields.py'
-      - 'scoring_test_fixtures.py'
-      - 'test_missing_scoring_fields.py'
-      - 'add_player_lab_stats.py'
-      - 'test_recent_identity.py'
-      - 'add_statcast_exit_velocity.py'
-      - 'test_statcast_exit_velocity.py'
-      - 'add_statcast_expected.py'
-      - 'test_statcast_expected.py'
-      - 'add_statcast_sprint_speed.py'
-      - 'test_statcast_sprint_speed.py'
-      - 'wrangler.jsonc'
-      - 'index.html'
-      - 'public/website.mjs'
-      - 'public/daily-trends.mjs'
-      - 'public/daily-matchups.mjs'
-      - 'test_daily_trends.mjs'
-      - 'test_daily_matchups.mjs'
-      - 'test_ui_ownership.mjs'
-      - 'test_season_mode.mjs'
-      - 'public/pitcher-today.mjs'
-      - 'public/weekly-summary.mjs'
-      - 'public/fic-weekly.mjs'
-      - 'public/pl-weekly.mjs'
-      - 'public/fa-filters.mjs'
-      - 'public/bullpen-watch.mjs'
-      - 'test_bullpen_watch.mjs'
-      - 'public/player-lab.mjs'
-      - 'public/player-comparison.mjs'
-      - 'test_player_comparison.mjs'
-      - 'public/snapshot-contract.mjs'
-      - 'public/season-mode.mjs'
+    branches: [main]
+    paths: ['.github/workflows/fantasygm-refresh.yml', '*.py', 'test_*.mjs', 'public/*.mjs', 'public/scoring-model.json', 'index.html', 'wrangler.jsonc']
   schedule:
-  - cron: '45 5 * * *'
-    timezone: "America/Phoenix"
-
+    - cron: '45 5 * * *'
+      timezone: America/Phoenix
 permissions:
-  contents: write
-
+  contents: read
 concurrency:
   group: fantasygm-refresh
   cancel-in-progress: false
-
 jobs:
-  refresh:
-    runs-on: ubuntu-latest
+  verify-and-deploy:
+    runs-on: ubuntu-24.04
     timeout-minutes: 15
-    env:
-      FANTRAX_USER_SECRET_ID: ${{ secrets.FANTRAX_USER_SECRET_ID }}
-
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           persist-credentials: false
-
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: '3.12'
-
-      - name: Verify data handling
-        run: python -m unittest discover -v
-
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v5
         with:
           node-version: '24'
-
-      - name: Verify website freshness contract
-        run: node --test test_snapshot_contract.mjs test_rb_weekly.mjs test_daily_trends.mjs test_daily_matchups.mjs test_ui_ownership.mjs test_season_mode.mjs test_reload_stability.mjs test_missing_pitcher_trend.mjs test_player_comparison.mjs test_bullpen_watch.mjs
-
-      - name: Collect Fantrax once
-        run: python fantrax_refresh.py --root "$RUNNER_TEMP/fantasygm" --league-id gxq8uqpqmg5m5edj --no-prompt
-
-      - name: Build complete sanitized website snapshot
-        run: python public_snapshot.py --root "$RUNNER_TEMP/fantasygm"
-
-      - name: Establish verified MLB player identifiers
-        run: python player_identity.py --snapshot public/fantasygm.json
-
-      - name: Attach verified MLB weekly schedule
-        run: python add_weekly_schedule.py --snapshot public/fantasygm.json
-
-      - name: Attach Baseball Monster opponent Ease rankings
-        run: python add_baseballmonster_ease.py --snapshot public/fantasygm.json
-
-      - name: Attach Fantasy Info Central hitter matchup context
-        run: python add_fic_matchups.py --snapshot public/fantasygm.json
-
-      - name: Attach Pitcher List weekly SP rankings
-        run: python add_pitcherlist.py --snapshot public/fantasygm.json
-
-      - name: Attach current-week RotoBaller Start/Sit ratings
-        run: python add_rotoballer_weekly.py --snapshot public/fantasygm.json
-
-      - name: Attach verified pitcher last-three game logs
-        run: python add_pitcher_logs.py --snapshot public/fantasygm.json
-
-      - name: Attach verified 14-day fantasy scoring
-        run: python add_recent_14d_stats.py --snapshot public/fantasygm.json
-
-      - name: Attach verified Player Lab metrics
-        run: python add_player_lab_stats.py --snapshot public/fantasygm.json
-
-      - name: Attach verified 2026 Statcast Exit Velocity & Barrels
-        run: python add_statcast_exit_velocity.py --snapshot public/fantasygm.json
-
-      - name: Attach verified 2026 Statcast Expected Statistics
-        run: python add_statcast_expected.py --snapshot public/fantasygm.json
-
-      - name: Attach verified 2026 Statcast Sprint Speed
-        run: python add_statcast_sprint_speed.py --snapshot public/fantasygm.json
-
-      - name: Prepare Cloudflare static site
+      - name: Verify data and website contracts
         run: |
-          rm -rf dist
-          mkdir -p dist/public
-          cp index.html dist/index.html
-          cp public/website.mjs dist/public/website.mjs
-          cp public/daily-trends.mjs dist/public/daily-trends.mjs
-          cp public/daily-matchups.mjs dist/public/daily-matchups.mjs
-          cp public/rb-weekly.mjs dist/public/rb-weekly.mjs
-          cp public/pitcher-today.mjs dist/public/pitcher-today.mjs
-          cp public/weekly-summary.mjs dist/public/weekly-summary.mjs
-          cp public/fic-weekly.mjs dist/public/fic-weekly.mjs
-          cp public/pl-weekly.mjs dist/public/pl-weekly.mjs
-          cp public/fa-filters.mjs dist/public/fa-filters.mjs
-          cp public/bullpen-watch.mjs dist/public/bullpen-watch.mjs
-          cp public/player-lab.mjs dist/public/player-lab.mjs
-          cp public/player-comparison.mjs dist/public/player-comparison.mjs
-          cp public/snapshot-contract.mjs dist/public/snapshot-contract.mjs
-          cp public/season-mode.mjs dist/public/season-mode.mjs
-          cp public/fantasygm.json dist/public/fantasygm.json
-          sed -i 's#</body>#<script type="module" src="public/fic-weekly.mjs"></script>\n<script type="module" src="public/pl-weekly.mjs"></script>\n</body>#' dist/index.html
-
-      - name: Deploy to Cloudflare Workers
+          python -m unittest discover -v
+          node --test test_*.mjs
+      - name: Verify 2027 scoring and keeper-roster readiness
+        run: python readiness.py
+      # Historical 2026 league is retired from the account's current league list.
+      # Preserve its last verified publication. Never relabel it or merge 2027 ownership.
+      - name: Refresh verified historical research statistics
+        run: |
+          cp public/fantasygm.json "$RUNNER_TEMP/research.json"
+          python add_recent_14d_stats.py --snapshot "$RUNNER_TEMP/research.json"
+          python add_player_lab_stats.py --snapshot "$RUNNER_TEMP/research.json"
+          python add_pitcher_logs.py --snapshot "$RUNNER_TEMP/research.json"
+      - name: Build retained historical research site
+        run: python build_site.py --snapshot "$RUNNER_TEMP/research.json"
+      - name: Require private website and data access before deployment
+        run: python verify_private.py https://fantasygm2027-desert-rats.desertrat54.workers.dev
+      - name: Deploy privately behind verified Cloudflare Access
         uses: cloudflare/wrangler-action@v4
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           command: deploy
-
-      - name: Publish snapshot to GitHub
-        continue-on-error: true
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          git config user.name 'github-actions[bot]'
-          git config user.email '418982+github-actions[bot]@users.noreply.github.com'
-          git add public/fantasygm.json
-          if ! git diff --cached --quiet; then
-            git commit -m 'Refresh sanitized FantasyGM website data'
-            HEADER="AUTHORIZATION: basic $(printf 'x-access-token:%s' "$GH_TOKEN" | base64 -w0)"
-            git -c "http.https://github.com/.extraheader=$HEADER" push origin HEAD:main || echo 'Snapshot push skipped because main advanced; Cloudflare deploy already succeeded.'
-          fi
-
+      - name: Recheck anonymous access after deployment
+        run: python verify_private.py https://fantasygm2027-desert-rats.desertrat54.workers.dev
