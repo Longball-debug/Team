@@ -3,7 +3,7 @@ import json
 import urllib.request
 
 
-def build_pool(info, rosters, catalogue):
+def build_pool(info, rosters, catalogue, *, allow_empty_rosters=False):
     if not isinstance(info, dict) or not isinstance(info.get('playerInfo'), dict) or not info['playerInfo']:
         raise ValueError('Missing Fantrax player pool')
     if not isinstance(catalogue, dict) or not catalogue:
@@ -16,7 +16,7 @@ def build_pool(info, rosters, catalogue):
         raise ValueError('Ambiguous Desert Rats team')
     owners = {}
     for tid, team in teams.items():
-        if not isinstance(team.get('rosterItems'), list) or not team['rosterItems']:
+        if not isinstance(team.get('rosterItems'), list) or (not team['rosterItems'] and not allow_empty_rosters):
             raise ValueError('Missing team roster')
         for player in team['rosterItems']:
             pid = player.get('id')

@@ -12,7 +12,7 @@ from pathlib import Path
 
 TABLES = {"Teams": "tbloEHPfvS7GqWxSZ", "Players": "tblFhGtwnYbdiQBU5"}
 
-def build_records(data):
+def build_records(data, *, allow_empty_players=False):
     league = data["league"]["league_id"]
     stamp = data["generated_at"]
     common = {"League ID": league, "Updated At": stamp, "Source": "Fantrax REST API"}
@@ -45,7 +45,7 @@ def build_records(data):
             if positions:
                 row["Positions"] = str(positions)
             players.append(row)
-    if not teams or not players:
+    if not teams or (not players and not allow_empty_players):
         raise ValueError("Empty roster; refusing to replace operational data")
     return teams, players
 

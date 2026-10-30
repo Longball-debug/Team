@@ -2,7 +2,7 @@
 import argparse,json,shutil
 from pathlib import Path
 
-def build(snapshot=None):
+def build(snapshot=None,archive=None):
     root=Path(__file__).parent; out=root/'dist'
     if out.exists(): shutil.rmtree(out)
     (out/'public').mkdir(parents=True)
@@ -13,8 +13,9 @@ def build(snapshot=None):
         if source.is_file() and source.suffix in {'.mjs','.json','.png','.svg','.jpg','.webp','.css'}:
             shutil.copy2(source,out/'public'/source.name)
     if snapshot is not None: shutil.copy2(snapshot,out/'public/fantasygm.json')
+    if archive is not None: shutil.copy2(archive,out/'public/history-2026.json')
     # Authenticated content must never be cached as publicly shareable content.
     (out/'_headers').write_text('/*\n  Cache-Control: private, no-store\n  X-Robots-Tag: noindex, nofollow\n  Referrer-Policy: same-origin\n  X-Content-Type-Options: nosniff\n')
     print('Built existing four-page site in dist; preserved collection timestamp.')
 if __name__=='__main__':
-    p=argparse.ArgumentParser();p.add_argument('--snapshot',type=Path);args=p.parse_args();build(args.snapshot)
+    p=argparse.ArgumentParser();p.add_argument('--snapshot',type=Path);p.add_argument('--archive',type=Path);args=p.parse_args();build(args.snapshot,args.archive)

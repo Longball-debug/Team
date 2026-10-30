@@ -11,12 +11,12 @@ export function seasonMode(data, now = new Date()) {
   const gamesSeen = Number(data?.weekly_schedule?.games_seen);
   const regularCalendarWindow = month >= 4 && month <= 9;
   const fullRegularWeek = Number.isFinite(gamesSeen) && gamesSeen >= 20;
-  const inSeason = !data?.historical && !data?.stale && (regularCalendarWindow || fullRegularWeek);
+  const inSeason = !data?.research_only && !data?.historical && !data?.stale && (regularCalendarWindow || fullRegularWeek);
   return {
     mode: inSeason ? 'in-season' : 'offseason',
     inSeason,
     offseason: !inSeason,
-    label: data?.historical ? 'HISTORICAL 2026 · OFFSEASON RESEARCH' : inSeason ? 'IN-SEASON MODE' : 'OFFSEASON MODE',
+    label: data?.roster_phase === 'keeper' ? '2027 KEEPERS · 2026 PERFORMANCE RESEARCH' : data?.historical ? 'HISTORICAL 2026 · OFFSEASON RESEARCH' : inSeason ? 'IN-SEASON MODE' : 'OFFSEASON MODE',
     reason: inSeason
       ? 'Regular-season calendar window or verified full MLB schedule week.'
       : 'Outside the regular-season calendar window with no verified full MLB schedule week.',

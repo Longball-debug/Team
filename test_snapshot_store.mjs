@@ -30,3 +30,9 @@ test('one shared fetch feeds all pages; failed and older reloads retain last goo
   assert.match(store.snapshotNotice(a),/Historical 2026 research only/);
  } finally {globalThis.fetch=oldFetch;}
 });
+
+test('explicit 2027 keeper contract permits empty teams, keeps stats historical and disables live decisions',()=>{
+ const s=fixture();s.league_id='n81gfju2muo8y07b';s.roster_phase='keeper';s.research_only=true;s.statistics_season=2026;s.source='Current LONGBALL 2027 keeper research';s.players=[];
+ const result=validateSnapshot(s);assert.equal(result.historical,false);assert.equal(result.roster_phase,'keeper');assert.equal(result.research_only,true);assert.equal(result.decisions_enabled,false);assert.equal(result.statistics_season,2026);
+ s.roster_phase='live';assert.throws(()=>validateSnapshot(s));
+});

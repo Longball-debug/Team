@@ -40,8 +40,12 @@ jobs:
           python add_recent_14d_stats.py --snapshot "$RUNNER_TEMP/research.json"
           python add_player_lab_stats.py --snapshot "$RUNNER_TEMP/research.json"
           python add_pitcher_logs.py --snapshot "$RUNNER_TEMP/research.json"
-      - name: Build retained historical research site
-        run: python build_site.py --snapshot "$RUNNER_TEMP/research.json"
+      - name: Collect separate current 2027 keeper research snapshot
+        run: |
+          python keeper_snapshot.py --archive "$RUNNER_TEMP/research.json" --output "$RUNNER_TEMP/keepers.json"
+          python add_pitcher_logs.py --snapshot "$RUNNER_TEMP/keepers.json"
+      - name: Build current keeper research and preserved historical archive
+        run: python build_site.py --snapshot "$RUNNER_TEMP/keepers.json" --archive "$RUNNER_TEMP/research.json"
       - name: Generate private session signing key
         run: |
           SESSION_KEY=$(python -c 'import secrets; print(secrets.token_hex(32))')

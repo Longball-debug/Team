@@ -14,7 +14,7 @@ def access_gate(url):
     return (code==401 and auth=='password-required') or (code in (302,303,307) and host.endswith('.cloudflareaccess.com'))
 def main():
     base=sys.argv[1].rstrip('/')
-    for path in ('/','/public/fantasygm.json','/public/scoring-model.json'):
+    for path in ('/','/public/fantasygm.json','/public/scoring-model.json','/public/history-2026.json'):
         if not access_gate(base+path):
             raise SystemExit('Private deployment blocked: the private authentication gate is not verified for website and data paths.')
     print('Verified unauthenticated requests require authentication on website and data paths.')

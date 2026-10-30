@@ -37,3 +37,7 @@ python readiness.py
 python build_site.py --snapshot /absolute/path/to/verified-research.json
 python verify_private.py https://fantasygm2027-desert-rats.desertrat54.workers.dev
 ```
+
+## Current keeper view and archive
+
+The default view now collects current 2027 keeper ownership and availability through a separate validated contract. All 12 team responses are required, but empty keeper rosters are valid. No invented standings are displayed. Historical 2026 baseball statistics may be joined only through a unique verified MLB identity; ownership is never copied from the archive. The roster selector opens the preserved 2026 publication separately. Both datasets remain behind authentication. The keeper view stays research-only until live 2027 source contracts and applied scoring examples are verified.

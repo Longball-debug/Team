@@ -264,7 +264,7 @@ function percentileRank(value, peers) {
 }
 
 function overallSignal(player, allFreeAgents, weeks, mode={offseason:false}) {
-  if (data?.historical || data?.stale || !verifiedIdentity(player)) return {label:'RESEARCH ONLY', tone:'gray', title:'Current ownership, scoring reconciliation and predictive outcome validation are required before actionable advice.'};
+  if (data?.historical || data?.research_only || data?.stale || !verifiedIdentity(player)) return {label:'RESEARCH ONLY', tone:'gray', title:'Current ownership, scoring reconciliation and predictive outcome validation are required before actionable advice.'};
   if (!hasRecentStats(player) || player.games14 < 2) return {label:'NOT ENOUGH DATA', tone:'gray', title:'Overall signal requires verified recent fantasy production.'};
 
   const sameType = allFreeAgents.filter(p => isPitcher(p) === isPitcher(player) && hasRecentStats(p));
@@ -482,7 +482,7 @@ function render() {
       ? ` Sorted by 14-day fantasy points, high to low. Trend compares verified 7D vs 30D FP/G. 14D window: ${recent.start_date} through ${recent.end_date}.`
       : ' 14-day fantasy-point feed is not verified in the current snapshot.';
     note.textContent = mode.offseason
-      ? `OFFSEASON RESEARCH. Historical availability is dated to the ownership snapshot. ${activityLabel}${source} Historical/stale ownership disables actionable signals and vs Rats upgrade advice. Partial FP and trends describe past production; predictive accuracy is unvalidated.`
+      ? `OFFSEASON RESEARCH. Availability belongs only to the selected league and its ownership collection date. ${activityLabel}${source} Historical/stale ownership disables actionable signals and vs Rats upgrade advice. Partial FP and trends describe past production; predictive accuracy is unvalidated.`
       : `${activityLabel}${source}${dates} LOOK/WATCH/PASS combines 14D PPG rank among available peers, verified trend, next-week and week+2 Baseball Monster schedule ease, plus verified FIC context for hitters. vs Rats compares each candidate's verified 14D FP/G with the lowest verified Desert Rats FP/G at a shared usable position; ±1.00 FP/G is treated as the close-call band. Opponents come from MLB Stats API; Signals are research heuristics; predictive accuracy has not been validated.`;
   }
 }

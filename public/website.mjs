@@ -74,6 +74,8 @@ function rosterRecords(data) {
 }
 
 function renderSummary(data, roster) {
+  const intro=document.getElementById('dataset-description');
+  if(intro) intro.textContent=data.roster_phase==='keeper' ? 'Current LONGBALL 2027 keeper rosters and availability, kept separate from the 2026 ownership archive. Performance is historical 2026 data evaluated with partial configured 2027 scoring. Reduced or empty keeper rosters are expected. Live 2027 matchup and start/sit decisions await season feeds.' : 'Historical LONGBALL 2026 roster, availability and performance. Partial configured 2027 scoring; this archive does not establish current ownership. Use the roster selector for current 2027 keeper research.';
   const updated = document.getElementById('home-updated');
   if (updated) updated.textContent = new Date(data.generated_at).toLocaleString();
   const rc = document.getElementById('home-roster-count');
