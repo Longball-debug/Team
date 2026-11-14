@@ -1,7 +1,7 @@
 import {loadPublishedSnapshot, subscribeSnapshot} from './snapshot-store.mjs';
 import {appendRbSummary} from './rb-weekly.mjs';
 import {buildDailyTrendRows, dailyTrendFor, formatDailyFpg, selectDailyHitterActions} from './daily-trends.mjs';
-import {ficDailyRating, pitcherHandFromFic} from './daily-matchups.mjs';
+import {ficDailyRating, pitcherHandFromFic, pitcherListDailyRating} from './daily-matchups.mjs';
 import {applySeasonMode} from './season-mode.mjs';
 
 let snapshot = null;
@@ -365,6 +365,126 @@ function renderPitcherRecentGames(pitchers, recent) {
   }
 }
 
+function renderHomeDashboard(data, hitters, pitchers, mode) {
+  const hitterBody = document.getElementById('home-hitters');
+  const pitcherBody = document.getElementById('home-pitchers');
+  const alerts = document.getElementById('home-alerts');
+  if (!hitterBody || !pitcherBody || !alerts) return;
+
+  const today = phoenixDateString();
+  const week = data.weekly_schedule;
+  const schedule = mode.inSeason && week?.source === 'MLB Stats API' && week.days?.includes(today) && week.games_seen > 0 ? week : null;
+  const metrics = new Map((data.pool || []).map(player => [player.fantraxId, player]));
+  const gamesOn = (player, day) => {
+    const key = scheduleTeamKey(player.MLB, schedule);
+    if (!key) return null;
+    const games = schedule.teams[key][day] ?? [];
+    return Array.isArray(games)
+      ? games.filter(game => game.opponent && !/postponed|cancel|suspend/i.test(game.status || ''))
+      : null;
+  };
+  const names = entries => entries.length > 3
+    ? entries.slice(0, 3).join(', ') + ' +' + (entries.length - 3)
+    : entries.join(', ');
+  const dayLabel = day => day === today ? 'Today' : new Date(day + 'T12:00:00').toLocaleDateString([], {weekday:'short', month:'numeric', day:'numeric'});
+  const favorable = [];
+  const shortWeek = [];
+  const twoStart = [];
+  const todayStarts = [];
+  const bullpen = [];
+  const status = document.getElementById('home-roster-status');
+  status.textContent = data.roster_phase === 'keeper' ? '2027 keeper roster' : data.historical ? '2026 roster archive' : 'Published roster';
+  hitterBody.replaceChildren();
+  pitcherBody.replaceChildren();
+  alerts.replaceChildren();
+
+  for (const player of hitters) {
+    const recent = metrics.get(player['Player ID']);
+    const games = gamesOn(player, today);
+    const todayText = games?.length ? games.map(game => matchupText(game)).join(' · ') : games ? 'No scheduled game' : 'Unavailable';
+    const trend = dailyTrendFor(recent);
+    const row = document.createElement('tr');
+    row.append(cell(player.Positions), cell(player.Player), cell(formatDailyFpg(recent?.ppg7)), cell(todayText));
+    appendRatingCell(row, trend.label, trend.tone);
+    hitterBody.append(row);
+
+    if (schedule) {
+      const days = schedule.days.map(day => gamesOn(player, day));
+      if (days.some(games => games?.some(game => matchupTone(game, 'hitter', data) === 'green'))) favorable.push(player.Player);
+      if (days.every(Array.isArray)) {
+        const count = days.flat().length;
+        if (count > 0 && count <= 6) shortWeek.push(player.Player + ' (' + count + ')');
+      }
+    }
+  }
+
+  for (const player of pitchers) {
+    const starts = new Map();
+    if (schedule) {
+      for (const day of schedule.days) {
+        for (const game of gamesOn(player, day) || []) {
+          if (Number.isInteger(game.game_pk) && starterMatches(player.Player, game)) {
+            starts.set(game.game_pk, {day, game});
+          }
+        }
+      }
+    }
+    const entries = [...starts.values()];
+    const two = entries.length === 2;
+    if (two) twoStart.push(player.Player);
+    if (entries.some(start => start.day === today)) todayStarts.push(player.Player);
+    const row = document.createElement('tr');
+    const startText = entries.map(({day, game}) => dayLabel(day) + ' ' + matchupText(game)).join(' · ');
+    row.append(cell(player.Positions), cell(player.Player), cell(startText
+      ? startText + (two ? ' · 2 probable starts' : '')
+      : schedule ? 'No verified probable start' : 'Unavailable'));
+    const list = document.createElement('td');
+    if (!entries.length) list.textContent = 'Unavailable';
+    for (const {day} of entries) {
+      const rating = pitcherListDailyRating(data.pitcher_list, day, player.Player);
+      const line = document.createElement('div');
+      line.className = 'rating ' + (rating?.tone || 'gray');
+      line.textContent = dayLabel(day) + ' · ' + (rating?.label || 'Unavailable');
+      if (rating?.detail) line.title = rating.detail;
+      list.append(line);
+    }
+    row.append(list);
+    pitcherBody.append(row);
+
+    const recent = metrics.get(player['Player ID']);
+    const trend = dailyTrendFor(recent);
+    if (isReliever(player) && recent?.identityStatus === 'Verified' && trend.label === 'Rising') bullpen.push(player.Player);
+  }
+
+  for (const [body, columns, label] of [[hitterBody, 5, 'hitters'], [pitcherBody, 4, 'pitchers']]) {
+    if (body.children.length) continue;
+    const row = document.createElement('tr');
+    const message = cell('No ' + label + ' in the published roster.');
+    message.colSpan = columns;
+    row.append(message);
+    body.append(row);
+  }
+
+  const unavailable = schedule ? 'No verified entries' : 'Schedule unavailable';
+  for (const [label, items, tone, empty] of [
+    ['Two-start SPs', twoStart, 'green', unavailable],
+    ['Favorable hitter matchups', favorable, 'green', unavailable],
+    ['Short-week hitters', shortWeek, 'yellow', unavailable],
+    ['Bullpen form watch', bullpen, 'yellow', 'No verified rising reliever trends'],
+    ['Today’s probable starts', todayStarts, 'green', unavailable],
+  ]) {
+    const item = document.createElement('li');
+    const title = document.createElement('strong');
+    title.textContent = label;
+    const value = document.createElement('span');
+    value.className = 'rating ' + (items.length ? tone : 'gray');
+    value.textContent = items.length ? names(items) : empty;
+    if (label === 'Bullpen form watch' && items.length) value.textContent += mode.offseason ? ' · Historical rising form' : ' · Rising form';
+    item.append(title, value);
+    alerts.append(item);
+  }
+}
+
 function renderCore(data) {
   const mode = applySeasonMode(data);
   const roster = rosterRecords(data);
@@ -393,6 +513,7 @@ function renderCore(data) {
     dailyNote.textContent = 'OFFSEASON MODE: daily matchup/action sections are hidden. Recent trend and historical pitcher information remain available.';
   }
   renderSummary(data, roster);
+  renderHomeDashboard(data, hitters, pitchers, mode);
 }
 
 async function refresh(incoming=null) {
@@ -406,6 +527,17 @@ async function refresh(incoming=null) {
     const stamp = new Date(snapshot.generated_at).toLocaleString();
     setStatus(`Snapshot collected: ${stamp} | Browser loaded: ${new Date().toLocaleString()} | Reload reads published data; it does not generate new data. FP/FP-G are partial model values, not exact Fantrax totals · ${snapshot.source}`);
   } catch {
+    const homeStatus = document.getElementById('home-roster-status');
+    if (homeStatus) {
+      if (snapshot) {
+        const roster = rosterRecords(snapshot);
+        renderHomeDashboard(snapshot, roster.filter(p => !p.pitcher), roster.filter(p => p.pitcher), {inSeason:false, offseason:true});
+        homeStatus.textContent = 'Reload failed. Showing the last loaded roster.';
+      } else {
+        homeStatus.textContent = 'Published roster unavailable.';
+        document.getElementById('home-alerts').textContent = 'Published snapshot unavailable.';
+      }
+    }
     setStatus(snapshot ? `STALE DATA — reload failed; retaining snapshot ${snapshot.generated_at}. Availability may have changed.` : 'Data unavailable: no verified snapshot is loaded.');
   }
 }
