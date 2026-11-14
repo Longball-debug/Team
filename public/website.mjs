@@ -377,6 +377,7 @@ function renderDesk(data, roster, mode) {
   const pitchers = roster.filter(player => player.pitcher);
   const metrics = new Map((data.pool || []).map(player => [player.fantraxId, player]));
   const favorable = [];
+  let bestMatchup = null;
   const twoStart = [];
   const todayStarters = [];
   const shortWeek = [];
@@ -409,7 +410,14 @@ function renderDesk(data, roster, mode) {
     const games = hasToday ? todayGames(player, schedule) : [];
     const count = weeklyGames(player).length;
     if (count > 0 && count <= 6) shortWeek.push(player.Player);
-    if (games.some(game => matchupTone(game, 'hitter', data) === 'green')) favorable.push(player.Player);
+    const favorableGames = games.filter(game => matchupTone(game, 'hitter', data) === 'green');
+    if (favorableGames.length) favorable.push(player.Player);
+    for (const game of favorableGames) {
+      const rank = data.baseball_monster_ease.hitters[game.opponent].rank;
+      if (!bestMatchup || rank < bestMatchup.rank) {
+        bestMatchup = {rank, label: player.Player + ' · ' + matchupText(game)};
+      }
+    }
     row.append(cell(player.Positions), playerCell(player), cell(formatDailyFpg(record?.ppg7)), cell(matchupLabel(games)));
     appendRatingCell(row, trend.label, trend.tone);
     return row;
@@ -436,7 +444,7 @@ function renderDesk(data, roster, mode) {
   const names = (players, fallback) => players.length ? players.join(', ') : fallback;
   const summaries = [
     days.length === 7 && names(twoStart, 'No two-start pitchers matched'),
-    '',
+    bestMatchup?.label,
     days.length === 7 && names(shortWeek, 'No short-week hitters identified'),
     '',
     hasToday && names(favorable, 'No favorable matchups verified'),
