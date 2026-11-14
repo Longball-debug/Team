@@ -1,7 +1,7 @@
 import {loadPublishedSnapshot, subscribeSnapshot} from './snapshot-store.mjs';
 import {appendRbSummary} from './rb-weekly.mjs';
 import {buildDailyTrendRows, dailyTrendFor, formatDailyFpg, selectDailyHitterActions} from './daily-trends.mjs';
-import {ficDailyRating, pitcherHandFromFic} from './daily-matchups.mjs';
+import {ficDailyRating, pitcherHandFromFic, pitcherListDailyRating} from './daily-matchups.mjs';
 import {applySeasonMode} from './season-mode.mjs';
 
 let snapshot = null;
@@ -365,6 +365,88 @@ function renderPitcherRecentGames(pitchers, recent) {
   }
 }
 
+function renderDesk(data, roster, mode) {
+  const root = document.getElementById('home');
+  if (!root?.querySelector('#desk-hitters')) return;
+  const select = id => root.querySelector('#' + id);
+  const schedule = mode.inSeason ? data.weekly_schedule : null;
+  const today = phoenixDateString();
+  const days = schedule?.days || [];
+  const hasToday = days.includes(today);
+  const hitters = roster.filter(player => !player.pitcher);
+  const pitchers = roster.filter(player => player.pitcher);
+  const metrics = new Map((data.pool || []).map(player => [player.fantraxId, player]));
+  const favorable = [];
+  const twoStart = [];
+  const todayStarters = [];
+  const shortWeek = [];
+  const matchupLabel = games => games.map(game => matchupText(game)).join(', ') || '—';
+  const playerCell = player => {
+    const td = cell(player.Player);
+    if (player.MLB) {
+      const team = document.createElement('small');
+      team.textContent = player.MLB;
+      td.append(team);
+    }
+    return td;
+  };
+  const weeklyGames = player => {
+    const key = scheduleTeamKey(player.MLB, schedule);
+    return days.flatMap(day => schedule?.teams?.[key]?.[day] || []);
+  };
+  const emptyRow = columns => {
+    const row = document.createElement('tr');
+    const td = cell('No players in this published roster');
+    td.colSpan = columns;
+    row.append(td);
+    return row;
+  };
+
+  const hitterRows = hitters.map(player => {
+    const row = document.createElement('tr');
+    const record = metrics.get(player['Player ID']);
+    const trend = dailyTrendFor(record);
+    const games = hasToday ? todayGames(player, schedule) : [];
+    const count = weeklyGames(player).length;
+    if (count > 0 && count <= 6) shortWeek.push(player.Player);
+    if (games.some(game => matchupTone(game, 'hitter', data) === 'green')) favorable.push(player.Player);
+    row.append(cell(player.Positions), playerCell(player), cell(formatDailyFpg(record?.ppg7)), cell(matchupLabel(games)));
+    appendRatingCell(row, trend.label, trend.tone);
+    return row;
+  });
+  const pitcherRows = pitchers.map(player => {
+    const row = document.createElement('tr');
+    const starter = isStarter(player);
+    const starts = starter ? weeklyGames(player).filter(game => starterMatches(player.Player, game)) : [];
+    const games = starter && hasToday ? todayGames(player, schedule).filter(game => starterMatches(player.Player, game)) : [];
+    if (starts.length >= 2) twoStart.push(player.Player);
+    if (games.length) todayStarters.push(player.Player);
+    const label = [games.length ? 'Today' : '', starts.length ? starts.length + (starts.length === 1 ? ' start' : ' starts') : ''].filter(Boolean).join(' / ');
+    row.append(playerCell(player), cell(label || '—'), cell(matchupLabel(games.length ? games : starts)));
+    const rating = games.length ? pitcherListDailyRating(data.pitcher_list, today, player.Player) : null;
+    appendRatingCell(row, rating?.label || '—', rating?.tone || 'gray', rating?.detail);
+    return row;
+  });
+  select('desk-hitters').replaceChildren(...(hitterRows.length ? hitterRows : [emptyRow(5)]));
+  select('desk-pitchers').replaceChildren(...(pitcherRows.length ? pitcherRows : [emptyRow(4)]));
+  select('desk-hitters-count').textContent = '(' + hitters.length + ')';
+  select('desk-pitchers-count').textContent = '(' + pitchers.length + ')';
+  select('desk-roster-note').textContent = '7D FP/G uses partial configured scoring. ' +
+    (mode.offseason ? 'Live MLB matchup and start projections are hidden in offseason research.' : 'MLB start projections use matched probable starters.');
+  const names = (players, fallback) => players.length ? players.join(', ') : fallback;
+  const summaries = [
+    days.length === 7 && names(twoStart, 'No two-start pitchers matched'),
+    '',
+    days.length === 7 && names(shortWeek, 'No short-week hitters identified'),
+    '',
+    hasToday && names(favorable, 'No favorable matchups verified'),
+    hasToday && names(todayStarters, 'No probable starters matched today'),
+  ];
+  root.querySelectorAll('.desk-cards article p').forEach((element, index) => {
+    element.textContent = summaries[index] || (mode.offseason ? 'Offseason research' : 'Awaiting verified data');
+  });
+}
+
 function renderCore(data) {
   const mode = applySeasonMode(data);
   const roster = rosterRecords(data);
@@ -393,6 +475,7 @@ function renderCore(data) {
     dailyNote.textContent = 'OFFSEASON MODE: daily matchup/action sections are hidden. Recent trend and historical pitcher information remain available.';
   }
   renderSummary(data, roster);
+  renderDesk(data, roster, mode);
 }
 
 async function refresh(incoming=null) {
